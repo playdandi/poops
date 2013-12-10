@@ -33,7 +33,7 @@ bool GameLayer::init()
 	addChild(pBackgroundSprite, zBackground);
     
     // refresh button
-    pRefreshSprite = CCSprite::create("images/refresh.jpg");
+    pRefreshSprite = CCSprite::create("images/refresh.png");
     pRefreshSprite->setPosition(ccp(CCDirector::sharedDirector()->getWinSize().width/2, 64));
     pRefreshSprite->setScale(0.5f);
     addChild(pRefreshSprite, zBackground);
