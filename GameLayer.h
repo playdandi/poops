@@ -58,7 +58,8 @@ protected:
 	CCSize m_winSize;
 
 	bool m_bTouchStarted;
-    bool m_bTouchEnded;
+    bool m_bIsBombing;
+    //bool m_bTouchEnded;
 
 	int m_gestureStartBoardX;
 	int m_gestureStartBoardY;
@@ -68,13 +69,16 @@ protected:
 	Sound* sound;
     
     std::vector<CCPoint> hanbut;
+    std::vector<CCPoint> connectDia;
     std::vector<CCSprite*> connect;
+    std::vector<CCPoint> special;
     int m_callbackCnt;
     
     CCTexture2D* pPuzzlePiece;
     CCTexture2D* pPuzzleDia;
     CCTexture2D* pPuzzleSP;
     CCSprite* pBackgroundSprite;
+    CCSprite* pRefreshSprite;
 };
 
 #endif

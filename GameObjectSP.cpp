@@ -159,7 +159,12 @@ void GameObjectSP::AddChildren(GameLayer* gameLayer, int zOrder)
 
 void GameObjectSP::RemoveChildren()
 {
-    if (m_type == CONNECTED)
+    if (m_type == SPECIAL)
+    {
+        GetGameLayer()->removeChild(m_special, true);
+        m_special = NULL;
+    }
+    else if (m_type == CONNECTED)
     {
         if (m_leftup != NULL)
             GetGameLayer()->removeChild(m_leftup, true);

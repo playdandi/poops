@@ -31,6 +31,14 @@ bool GameLayer::init()
 	pBackgroundSprite->setPosition(CCPointZero);
 	pBackgroundSprite->setAnchorPoint(ccp(0.0f, 0.0f));
 	addChild(pBackgroundSprite, zBackground);
+    
+    // refresh button
+    pRefreshSprite = CCSprite::create("images/refresh.jpg");
+    pRefreshSprite->setPosition(ccp(CCDirector::sharedDirector()->getWinSize().width/2, 64));
+    pRefreshSprite->setScale(0.5f);
+    addChild(pRefreshSprite, zBackground);
+    
+    sound->playBackgroundSound();
 
 	m_winSize = CCDirector::sharedDirector()->getWinSize();
 
@@ -118,29 +126,61 @@ void GameLayer::StartGame()
     
     
 	m_bTouchStarted = false;
-    m_bTouchEnded = false;
-    
-    // sound
-    sound->playBackgroundSound();
+    m_bIsBombing = false;
+    //m_bTouchMoved = false;
+    //m_bTouchEnded = false;
+}
+
+
+bool isValidPosition(int x, int y)
+{
+    return 0 <= x && x < COLUMN_COUNT && 0 <= y && y < ROW_COUNT;
 }
 
 void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
 {
-  //  CCLog("touch began");
+    // CCLog("touch began");
+    if (m_bIsBombing)
+        return;
+    
+    CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
+    CCPoint point = pTouch->getLocation();
+
+    // refresh button
+    if (pRefreshSprite->boundingBox().containsPoint(point))
+    {
+        for (int x = 0 ; x < COLUMN_COUNT ; x++)
+        {
+            for (int y = 0 ; y < ROW_COUNT ; y++)
+            {
+                removeChild(m_pBoard[x][y], true);
+                m_pBoard[x][y] = NULL;
+                if (x > 0 && y > 0)
+                {
+                    m_pBoardSP[x][y]->RemoveChildren();
+                    m_pBoardSP[x][y] = NULL;
+                }
+            }
+        }
+        StartGame();
+    }
+    
 	if (!m_bTouchStarted)
 	{
-		CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
-        CCPoint point = pTouch->getLocation();
-
 		m_gestureStartBoardX = Common::ComputeBoardX(point.x);
 		m_gestureStartBoardY = Common::ComputeBoardY(point.y);
-
+        
+        if (!isValidPosition(m_gestureStartBoardX, m_gestureStartBoardY))
+            return;
 		if (m_pBoard[m_gestureStartBoardX][m_gestureStartBoardY] == NULL)
 			return;
         
+        // 벡터 초기화
         hanbut.clear();
         hanbut.push_back(ccp(m_gestureStartBoardX, m_gestureStartBoardY));
+        connectDia.clear();
         connect.clear();
+        special.clear();
         
         m_pBoard[m_gestureStartBoardX][m_gestureStartBoardY]->setAnchorPoint(ccp(0.5f, 0.5f));
         m_pBoard[m_gestureStartBoardX][m_gestureStartBoardY]->setPosition(
@@ -157,7 +197,10 @@ void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
 
 void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
 {
-   // CCLog("touch moved");
+    // CCLog("touch moved");
+    if (m_bIsBombing)
+        return;
+    
 	if (m_bTouchStarted)
 	{
 		CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
@@ -166,31 +209,13 @@ void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
 		int boardX = Common::ComputeBoardX(point.x);
 		int boardY = Common::ComputeBoardY(point.y);
 
+        if (!isValidPosition(boardX, boardY))
+            return;
 		if (m_pBoard[boardX][boardY] == NULL)
-			return;
+            return;
         
         int beforeX = hanbut[hanbut.size()-1].x;
         int beforeY = hanbut[hanbut.size()-1].y;
-        
-        /*
-        // 다른 type의 조각을 건드렸다면, 한붓그리기를 취소시켜야 한다.
-        if (m_pBoard[beforeX][beforeY]->GetType() != m_pBoard[boardX][boardY]->GetType())
-        {
-            CCLog("different type...");
-            for (int i = 0 ; i < hanbut.size() ; i++)
-            {
-                // back to original scale
-                CCFiniteTimeAction* action =
-                    CCSequence::create(CCScaleTo::create(0.05f, 1.0f), NULL);
-                        //CCCallFunc::create(this, callfunc_selector(GameLayer::ChangeCallback2)), NULL);
-                m_pBoard[(int)hanbut[i].x][(int)hanbut[i].y]->runAction(action);
-            }
-            hanbut.clear();
-            
-            m_bTouchStarted = false;
-            return;
-        }
-        */
         
         // 이전 조각과 인접하며 같은 type일 경우, 한붓그리기 대상에 추가한다.
         if ( (abs(beforeX-boardX) + abs(beforeY-boardY) == 1 ||
@@ -208,29 +233,32 @@ void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
                 if (m_pBoardSP[X][Y]->GetType() == BLOCKED)
                     return;
                 
-                
                 CCSprite* conn = CCSprite::create("images/connect_diagonal.png");
                 if (beforeX > boardX && beforeY < boardY) // 대각선 left-up 연결됨
                 {
-                    conn->setPosition(Common::ComputeXY(beforeX, boardY));
                 }
                 else if (beforeX < boardX && beforeY < boardY) // right-up
                 {
                     conn->setRotation(90);
-                    conn->setPosition(Common::ComputeXY(boardX, boardY));
                 }
                 else if (beforeX > boardX && beforeY > boardY) // left-down
                 {
                     conn->setRotation(90);
-                    conn->setPosition(Common::ComputeXY(beforeX, beforeY));
                 }
                 else // right-down
                 {
-                    conn->setPosition(Common::ComputeXY(boardX, beforeY));
                 }
 
+                conn->setPosition(Common::ComputeXY(X, Y));
                 addChild(conn, zPieceConn);
                 connect.push_back(conn);
+                
+                if (m_pBoardSP[X][Y]->GetType() == CONNECTED)
+                    connectDia.push_back(ccp(X, Y));
+                
+                // 대각선의 diamond type이 special이면 vector에 추가.
+                if (m_pBoardSP[X][Y]->GetType() == SPECIAL)
+                    special.push_back(ccp(X, Y));
             }
             else if (abs(beforeX-boardX) == 1) // 가로로 연결됨
             {
@@ -277,10 +305,11 @@ inline bool GameLayer::AlreadySelected(int x, int y)
 
 void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
 {
-    if (m_bTouchStarted && !m_bTouchEnded)
+    if (m_bIsBombing)
+        return;
+    
+    if (m_bTouchStarted)
     {
-        m_bTouchEnded = true;
-        
         // 연결 그림들 제거한다.
         for (int i = 0 ; i < connect.size() ; i++)
         {
@@ -288,7 +317,7 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
         }
         connect.clear();
     
-    
+        
         if (hanbut.size() >= 3)
         {
             // 3개 이상 한붓그리기 했으면 터뜨려야지!
@@ -308,7 +337,6 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
             }
             
             m_bTouchStarted = false;
-            m_bTouchEnded = false;
         }
     }
 }
@@ -324,6 +352,7 @@ void GameLayer::TouchCallback()
             ccp(Common::ComputeX(X), Common::ComputeY(Y)));
     }
     hanbut.clear();
+    connectDia.clear();
 }
 
 
@@ -331,8 +360,61 @@ void GameLayer::TouchCallback()
 void GameLayer::BombObject()
 {
     //CCLog("BombObject");
+    m_bIsBombing = true;
     m_callbackCnt = 0;
+
+    // special diamond에 대한 처리
+    std::vector<CCPoint> specialBomb;
+    specialBomb.clear();
+    for (int i = 0 ; i < special.size() ; i++)
+    {
+        int X = (int)special[i].x;
+        int Y = (int)special[i].y;
+        int type_sp = m_pBoardSP[X][Y]->GetTypeSP();
+        
+        if (type_sp == 0) // 4*4 bomb
+        {
+            int sx = (X-2 >= 0) ? X-2 : 0;
+            int sy = (Y-2 >= 0) ? Y-2 : 0;
+            int ex = (X+1 < COLUMN_COUNT) ? X+1 : COLUMN_COUNT-1;
+            int ey = (Y+1 < ROW_COUNT) ? Y+1 : ROW_COUNT-1;
+            for (int x = sx ; x <= ex ; x++)
+            {
+                for (int y = sy ; y <= ey ; y++)
+                {
+                    bool flag = true;
+                    // 한붓그리기된 조각에 4*4 범위 내의 조각이 이미 포함되어 있으면 추가하지 마라.
+                    for (int j = 0 ; j < hanbut.size() ; j++)
+                    {
+                        if (x == hanbut[j].x && y == hanbut[j].y)
+                        {
+                            flag = false;
+                            break;
+                        }
+                    }
+                    if (flag)
+                        specialBomb.push_back(ccp(x, y));
+                }
+            }
+            
+            // special bomb 조각들을 hanbut에 추가해서 같이 터뜨린다.
+            for (int i = 0 ; i < specialBomb.size() ; i++)
+                hanbut.push_back(specialBomb[i]);
+            specialBomb.clear();
+        }
+    }
     
+    
+    // 한붓그리기에서 대각선에 걸린 diamond들을 없앤다.
+    for (int i = 0 ; i < connectDia.size() ; i++)
+    {
+        int x = connectDia[i].x;
+        int y = connectDia[i].y;
+        m_pBoardSP[x][y]->RemoveChildren();
+    }
+    connectDia.clear();
+    
+    // bomb action start.
     for (int i = 0 ; i < hanbut.size() ; i++)
     {
         int boardX = (int)hanbut[i].x;
@@ -355,10 +437,10 @@ void GameLayer::BombObject()
 void GameLayer::BombCallback()
 {
     m_callbackCnt++;
-    //CCLog("BombCallback, %d", m_callbackCnt);
     
     if (m_callbackCnt == hanbut.size())
     {
+        // bomb action이 끝나면 한붓그리기 상의 모든 조각을 제거한다.
         for (int i = 0 ; i < hanbut.size() ; i++)
         {
             GameObject* pGameObject = m_pBoard[(int)hanbut[i].x][(int)hanbut[i].y];
@@ -367,6 +449,7 @@ void GameLayer::BombCallback()
    			m_pBoard[(int)hanbut[i].x][(int)hanbut[i].y] = NULL;
         }
         hanbut.clear();
+        
         
         ProcessFalling();
     }
@@ -463,7 +546,8 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
         }
         
         m_bTouchStarted = false;
-        m_bTouchEnded = false;
+        m_bIsBombing = false;
+        //m_bTouchEnded = false;
 	}
 }
 
