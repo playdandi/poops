@@ -17,19 +17,13 @@ public:
     virtual void keyBackClicked();
 
 	void StartGame();
+    
+    void SetOpacities(int alpha);
+    void ReadyTimer(float f);
+    void PuzzleTimer(float f);
 
-	bool IsStreak(int x, int y);
-	int StreakHorz(int x, int y);
-	int StreakVert(int x, int y);
-	bool CheckType(int type, int x, int y);
-
-	//bool IsAdjacent(int x1, int y1, int x2, int y2);
-	//void SwapObjects(int x1, int y1, int x2, int y2, bool bRollback = false);
-	//void RemoveObject(int x, int y);
-
-	//void SlidingFinished(int x1, int y1, int x2, int y2);
-
-	void CheckStreaks();
+    void doNotification(CCObject* obj);
+    void ShowPuzzleResult();
 
 	void ProcessFalling();
 	void FallingFinished(int x1, int y1, int x2, int y2);
@@ -46,6 +40,8 @@ public:
     CCTexture2D* GetPuzzlePiece();
     CCTexture2D* GetPuzzleDia();
     CCTexture2D* GetPuzzleSP();
+    
+    void UpdateScore();
 	
 	static CCScene* scene();
 
@@ -79,6 +75,17 @@ protected:
     CCTexture2D* pPuzzleSP;
     CCSprite* pBackgroundSprite;
     CCSprite* pRefreshSprite;
+    
+    CCLabelTTF* readyTime;
+    CCLabelTTF* puzzleTime;
+    CCLabelTTF* scoreLabel;
+    CCProgressTimer* progressTimer;
+    
+private:
+    int iStartTimer;
+    float iRemainingPuzzleTime;
+    
+    int iScore;
 };
 
 #endif

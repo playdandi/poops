@@ -9,7 +9,7 @@ float Common::ComputeX(float x)
 float Common::ComputeY(float y)
 {
 	//return CCDirector::sharedDirector()->getWinSize().height-floorf(y*OBJECT_HEIGHT);
-    return floorf(y*OBJECT_HEIGHT)+OBJECT_HEIGHT*2;
+    return floorf(y*OBJECT_HEIGHT+25)+OBJECT_HEIGHT;
 }
 
 CCPoint Common::ComputeXY(float x, float y)
@@ -24,5 +24,5 @@ int Common::ComputeBoardX(float x)
 
 int Common::ComputeBoardY(float y)
 {
-    return (int)((y-OBJECT_HEIGHT*2)/floorf(OBJECT_HEIGHT));
+    return (int)((y-OBJECT_HEIGHT-25)/floorf(OBJECT_HEIGHT));
 }

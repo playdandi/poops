@@ -1,4 +1,5 @@
 #include "GameLayer.h"
+#include "GameEndLayer.h"
 
 enum
 {
@@ -7,6 +8,7 @@ enum
     zGameObjectSP = 2,
     zPieceConn = 3,
 };
+
 
 bool GameLayer::init()
 {
@@ -32,21 +34,96 @@ bool GameLayer::init()
 	pBackgroundSprite->setAnchorPoint(ccp(0.0f, 0.0f));
 	addChild(pBackgroundSprite, zBackground);
     
+    /*
     // refresh button
     pRefreshSprite = CCSprite::create("images/refresh.png");
     pRefreshSprite->setPosition(ccp(CCDirector::sharedDirector()->getWinSize().width/2, 64));
     pRefreshSprite->setScale(0.5f);
     addChild(pRefreshSprite, zBackground);
+    */
     
     sound->playBackgroundSound();
 
 	m_winSize = CCDirector::sharedDirector()->getWinSize();
 
+    // score & score label
+    iScore = 0;
+    scoreLabel = CCLabelTTF::create("0", "Arial", 80);
+    scoreLabel->setAnchorPoint(ccp(1.0f, 0.5f));
+    scoreLabel->setPosition(ccp(m_winSize.width-20, m_winSize.height-50));
+    addChild(scoreLabel);
+    
+    // puzzle board
 	StartGame();
+    
+    // timer progressbar && puzzletime label
+    CCSprite* pBar = CCSprite::create("images/progressbar.png", CCRectMake(0, 0, OBJECT_WIDTH*6, 30));
+    pBar->setColor(ccc3(0, 0, 255));
+    progressTimer = CCProgressTimer::create(pBar);
+    progressTimer->setType(kCCProgressTimerTypeBar);
+    progressTimer->setMidpoint(ccp(0, 0));
+    progressTimer->setBarChangeRate(ccp(1, 0));
+    progressTimer->setPercentage(100.0f);
+    progressTimer->setAnchorPoint(ccp(0.0f, 1.0f));
+    progressTimer->setPosition(ccp(0, OBJECT_HEIGHT));
+    addChild(progressTimer);
+    
+    puzzleTime = CCLabelTTF::create("5", "Arial", 80);
+    puzzleTime->setAnchorPoint(ccp(1.0f, 1.0f));
+    puzzleTime->setPosition(ccp(m_winSize.width-OBJECT_WIDTH, OBJECT_HEIGHT+20));
+    puzzleTime->setColor(ccc3(0, 0, 0));
+    addChild(puzzleTime);
+    
+    //CCLog("%f", progressTimer->getPercentage());
 
-	setTouchEnabled(true);
-
+   	setTouchEnabled(false);
+    
+    readyTime = CCLabelTTF::create("3", "Arial", 60);
+    readyTime->setPosition(ccp(m_winSize.width/2, m_winSize.height+100));
+    addChild(readyTime);
+    
+    iStartTimer = 4;
+    iRemainingPuzzleTime = 5.0f;
+    this->schedule(schedule_selector(GameLayer::ReadyTimer), 0.5f);
+    
+    // set notification
+    // 'noti' 라는 메시지가 오면 해당 함수(doNotification)를 실행한다.
+    CCNotificationCenter::sharedNotificationCenter()->addObserver(
+                                this, callfuncO_selector(GameLayer::doNotification), "noti", NULL);
+    
 	return true;
+}
+
+void GameLayer::doNotification(CCObject* obj)
+{
+    //노티피케이션 받기
+	CCString *pParam=(CCString*)obj;
+	CCLog("notification %s", pParam->getCString());
+	
+	if (pParam->intValue() == 1)
+    {
+		CCLog("noti 11");
+		CCDirector::sharedDirector()->resume();   //화면 재시작
+        
+		//CCDirector::sharedDirector()->getTouchDispatcher()->addTargetedDelegate(pMenu, kCCMenuHandlerPriority,true);
+        //메뉴 버튼 활성
+	}
+	else
+    {
+		CCArray* childs = this->getChildren();
+        CCLog("noti 00");
+        CCDirector::sharedDirector()->pause();   //화면 정지
+        
+        //CCDirector::sharedDirector()->getTouchDispatcher()->removeDelegate(pMenu);
+        //메뉴버튼 비활성
+	}
+}
+
+
+
+void GameLayer::SetOpacities(int alpha)
+{
+    //pBackgroundSprite->setOpacity(alpha);
 }
 
 CCScene* GameLayer::scene()
@@ -55,7 +132,7 @@ CCScene* GameLayer::scene()
 
 	GameLayer* pLayer = GameLayer::create();
 	pScene->addChild(pLayer);
-
+    
 	return pScene;
 }
 
@@ -127,9 +204,67 @@ void GameLayer::StartGame()
     
 	m_bTouchStarted = false;
     m_bIsBombing = false;
-    //m_bTouchMoved = false;
-    //m_bTouchEnded = false;
 }
+
+
+void GameLayer::ReadyTimer(float f)
+{
+    iStartTimer--;
+
+    if (iStartTimer == 3)
+    {
+        readyTime->setString("3");
+        CCActionInterval* action = CCMoveBy::create(0.1f, ccp(0, -100-OBJECT_HEIGHT/2));
+        readyTime->runAction(action);
+    }
+    else if (iStartTimer > 0)
+    {
+        if (iStartTimer == 2) readyTime->setString("2");
+        else readyTime->setString("1");
+    }
+    else // 0 sec
+    {
+        readyTime->setString("0");
+        CCFiniteTimeAction* action =
+            CCSpawn::create(CCScaleTo::create(0.15f, 1.5f), CCFadeOut::create(0.15f), NULL);
+        readyTime->runAction(action);
+
+       	this->setTouchEnabled(true);
+
+        this->unschedule(schedule_selector(GameLayer::ReadyTimer));
+        this->schedule(schedule_selector(GameLayer::PuzzleTimer), 0.1f);
+    }
+}
+
+void GameLayer::PuzzleTimer(float f)
+{
+    iRemainingPuzzleTime -= 0.10f;
+    //CCLog("puzzle time : %f", iRemainingPuzzleTime);
+
+    float round1 = ((int)(iRemainingPuzzleTime * pow(10.0, 1))) / pow(10.0, 1);
+    //CCLog("%f %f", (float)((int)iRemainingPuzzleTime), round1);
+    
+    if ((float)((int)iRemainingPuzzleTime) == round1)
+    {
+        char time[3];
+        sprintf(time, "%d", (int)iRemainingPuzzleTime);
+        puzzleTime->setString(time);
+    }
+    progressTimer->setPercentage(iRemainingPuzzleTime / 60.0f * 100.0);
+    
+    if (iRemainingPuzzleTime <= 0.0f)
+    {
+        this->unschedule(schedule_selector(GameLayer::PuzzleTimer));
+        ShowPuzzleResult();
+    }
+}
+
+void GameLayer::ShowPuzzleResult()
+{
+    CCScene* pScene = GameEndLayer::scene();
+    this->addChild(pScene, 2000, 2000);
+}
+
 
 
 bool isValidPosition(int x, int y)
@@ -146,6 +281,7 @@ void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
     CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
     CCPoint point = pTouch->getLocation();
 
+    /*
     // refresh button
     if (pRefreshSprite->boundingBox().containsPoint(point))
     {
@@ -164,6 +300,7 @@ void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
         }
         StartGame();
     }
+    */
     
 	if (!m_bTouchStarted)
 	{
@@ -440,6 +577,9 @@ void GameLayer::BombCallback()
     
     if (m_callbackCnt == hanbut.size())
     {
+        // score update
+        UpdateScore();
+        
         // bomb action이 끝나면 한붓그리기 상의 모든 조각을 제거한다.
         for (int i = 0 ; i < hanbut.size() ; i++)
         {
@@ -454,7 +594,6 @@ void GameLayer::BombCallback()
         ProcessFalling();
     }
 }
-
 
 void GameLayer::ProcessFalling()
 {
@@ -547,7 +686,6 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
         
         m_bTouchStarted = false;
         m_bIsBombing = false;
-        //m_bTouchEnded = false;
 	}
 }
 
@@ -565,4 +703,13 @@ CCTexture2D* GameLayer::GetPuzzleDia()
 CCTexture2D* GameLayer::GetPuzzleSP()
 {
     return pPuzzleSP;
+}
+
+
+void GameLayer::UpdateScore()
+{
+    iScore += 10*hanbut.size();
+    char score[8];
+    sprintf(score, "%d", iScore);
+    scoreLabel->setString(score);
 }
