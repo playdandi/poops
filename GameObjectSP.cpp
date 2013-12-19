@@ -18,27 +18,27 @@ GameObjectSP* GameObjectSP::Create(GameLayer* gameLayer, int lu, int ru, int ld,
     GameObjectSP* pGameObjectSP = new GameObjectSP();
     pGameObjectSP->SetGameLayer(gameLayer);
     
-    //int type = rand()%(TYPE_DIA_COUNT-1);
     int r = rand()%100;
     int type = (r < 40) ? BLOCKED : ((r < 80) ? CONNECTED : SPECIAL);
+
+    pGameObjectSP->SetType(type);
     
     if (type == SPECIAL) // special
     {
-        int type_sp = 0;
-        //int type_sp = rand()%TYPE_SP_COUNT;
-        pGameObjectSP->CreateSpriteSP(type_sp, gameLayer);
+        int type_sp = 0; //int type_sp = rand()%TYPE_SP_COUNT;
         pGameObjectSP->SetTypeSP(type_sp);
+        pGameObjectSP->CreateSpriteDia(gameLayer, lu, ru, ld, rd, type_sp);
+        //pGameObjectSP->CreateSpriteSP(type_sp, gameLayer);
     }
     else if (type == CONNECTED) // connected
     {
-        pGameObjectSP->CreateSpriteDia(gameLayer, lu, ru, ld, rd);
+        pGameObjectSP->CreateSpriteDia(gameLayer, lu, ru, ld, rd, -1);
     }
-    
-	pGameObjectSP->SetType(type);
     
 	return pGameObjectSP;
 }
 
+/*
 void GameObjectSP::CreateSpriteSP(int type_sp, GameLayer* gameLayer)
 {
     m_special = new CCSprite();
@@ -46,9 +46,11 @@ void GameObjectSP::CreateSpriteSP(int type_sp, GameLayer* gameLayer)
                                CCRectMake(type_sp*DIAMOND_WIDTH, 0, DIAMOND_WIDTH, DIAMOND_HEIGHT));
     m_special->autorelease();
 }
+*/
 
-void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld, int rd)
+void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld, int rd, int type_sp)
 {
+    m_special = NULL;
     m_leftup = NULL;
     m_rightup = NULL;
     m_leftdown = NULL;
@@ -56,6 +58,15 @@ void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld,
     
     if (lu != rd && ru != ld)
         return;
+    
+    if (type_sp != -1)
+    {
+        // special piece
+        m_special = new CCSprite();
+        m_special->initWithTexture(gameLayer->GetPuzzleSP(),
+                                   CCRectMake(type_sp*DIAMOND_WIDTH, 0, DIAMOND_WIDTH, DIAMOND_HEIGHT));
+        m_special->autorelease();
+    }
     
     m_leftup = new CCSprite();
     m_rightdown = new CCSprite();
@@ -106,11 +117,8 @@ void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld,
 
 void GameObjectSP::SetPositions(int x, int y)
 {
-    if (m_type == SPECIAL)
-    {
-        m_special->setPosition(Common::ComputeXY(x, y));
-    }
-    else if (m_type == CONNECTED)
+    //else if (m_type == CONNECTED)
+    if (m_type != BLOCKED)
     {
         if (m_leftup != NULL)
         {
@@ -135,16 +143,18 @@ void GameObjectSP::SetPositions(int x, int y)
             m_rightdown->setAnchorPoint(ccp(0.0f, 0.0f));
             m_rightdown->setRotation(90);
         }
+        
+        if (m_type == SPECIAL && m_special != NULL)
+        {
+            m_special->setPosition(Common::ComputeXY(x, y));
+        }
     }
 }
 
 void GameObjectSP::AddChildren(GameLayer* gameLayer, int zOrder)
 {
-    if (m_type == SPECIAL)
-    {
-        gameLayer->addChild(m_special, zOrder);
-    }
-    else if (m_type == CONNECTED)
+    //else if (m_type == CONNECTED)
+    if (m_type != BLOCKED)
     {
         if (m_leftup != NULL)
             gameLayer->addChild(m_leftup, zOrder);
@@ -154,17 +164,18 @@ void GameObjectSP::AddChildren(GameLayer* gameLayer, int zOrder)
             gameLayer->addChild(m_leftdown, zOrder);
         if (m_rightdown != NULL)
             gameLayer->addChild(m_rightdown, zOrder);
+        
+        if (m_type == SPECIAL && m_special != NULL)
+        {
+            gameLayer->addChild(m_special, zOrder);
+        }
     }
 }
 
 void GameObjectSP::RemoveChildren()
 {
-    if (m_type == SPECIAL)
-    {
-        GetGameLayer()->removeChild(m_special, true);
-        m_special = NULL;
-    }
-    else if (m_type == CONNECTED)
+    //else if (m_type == CONNECTED)
+    if (m_type != BLOCKED)
     {
         if (m_leftup != NULL)
             GetGameLayer()->removeChild(m_leftup, true);
@@ -178,6 +189,12 @@ void GameObjectSP::RemoveChildren()
         m_rightup = NULL;
         m_leftdown = NULL;
         m_rightdown = NULL;
+        
+        if (m_type == SPECIAL && m_special != NULL)
+        {
+            GetGameLayer()->removeChild(m_special, true);
+            m_special = NULL;
+        }
     }
 }
 

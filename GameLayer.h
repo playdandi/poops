@@ -44,6 +44,8 @@ public:
     void UpdateScore();
 	
 	static CCScene* scene();
+    
+    int GetScore();
 
 	CREATE_FUNC(GameLayer);
 
@@ -86,6 +88,10 @@ private:
     float iRemainingPuzzleTime;
     
     int iScore;
+    int iLevelBonus;
+    int iTypeBonus;
+    float fAcquiredWeight;
+    std::vector<int> ingredient;
 };
 
 #endif

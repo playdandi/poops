@@ -1,9 +1,24 @@
 #include "GameEndLayer.h"
+#include "GameLayer.h"
 
 using namespace cocos2d;
 
-CCScene* GameEndLayer::scene()
+// global temporary variables
+static int iScore;
+static int iLevelBonus;
+static int iTypeBonus;
+static float fAcquiredWeight;
+static std::vector<int> ingredient;
+bool isConfirming = false;
+
+
+CCScene* GameEndLayer::scene(int score, int levelBonus, int typeBonus, float weight)
 {
+    iScore = score;
+    iLevelBonus = levelBonus;
+    iTypeBonus = typeBonus;
+    fAcquiredWeight = weight;
+    
     CCScene* pScene = CCScene::create();
     GameEndLayer* pLayer = GameEndLayer::create();
     pScene->addChild(pLayer);
@@ -27,20 +42,189 @@ bool GameEndLayer::init()
     
     winSize = CCDirector::sharedDirector()->getWinSize();
     
-    backLayer = CCLayerColor::create(ccc4(0, 0, 0, 150), winSize.width, winSize.height);
-//    backLayer->setAnchorPoint(ccp(0, 0));
-    backLayer->setPosition(ccp(0, 0));
-    this->addChild(backLayer);
+    // background sprite
+    pBackground = CCSprite::create("images/progressbar.png", CCRectMake(0, 0, winSize.width, winSize.height));
+    pBackground->setPosition(ccp(0, 0));
+    pBackground->setAnchorPoint(ccp(0, 0));
+    pBackground->setColor(ccc3(0, 0, 0));
+    pBackground->setOpacity(150);
+    addChild(pBackground);
     
-    popupLayer = CCLayerColor::create(ccc4(255, 255, 255, 255), 200, 200);
-    popupLayer->setPosition(ccp(winSize.width/2, winSize.height/2));
-//    popupLayer->setAnchorPoint(ccp(0.5f, 0.5f));
-    this->addChild(popupLayer);
+    // popup sprite
+    pPopup = CCSprite::create("images/progressbar.png", CCRectMake(0, 0, winSize.width-150, winSize.height-100));
+    //pPopup->setPosition(ccp(winSize.width/2, 0));//-winSize.height/2));
+    pPopup->setPosition(ccp(winSize.width/2, winSize.height/2));
+    pPopup->setColor(ccc3(151, 223, 240));
+    addChild(pPopup);
+    
+    CCActionInterval* action = CCMoveTo::create(0.5f, ccp(winSize.width/2, winSize.height/2));
+    pPopup->runAction(action);
+    
+    int pWidth = pPopup->getContentSize().width;
+    int pHeight = pPopup->getContentSize().height;
+    
+    pYourScore = CCLabelTTF::create("Your Score", "Arial", 30);
+    pYourScore->setColor(ccc3(0, 0, 255));
+    pYourScore->setRotation(-15);
+    pYourScore->setAnchorPoint(ccp(0, 0));
+    pYourScore->setPosition(ccp(30, pHeight-100));
+    pPopup->addChild(pYourScore);
+    
+    char score[8];
+    sprintf(score, "%d", iScore);
+    pScore = CCLabelTTF::create(score, "Arial", 50);
+    pScore->setAnchorPoint(ccp(0.5, 1.0));
+    pScore->setColor(ccc3(0, 0, 0));
+    pScore->setPosition(ccp(pWidth/2, pHeight-100+30));
+    pPopup->addChild(pScore);
+    
+    pScoreUnderline = CCSprite::create("images/progressbar.png",
+                                       CCRectMake(0, 0, pScore->getContentSize().width, 10));
+    pScoreUnderline->setColor(ccc3(255, 0, 0));
+    pScoreUnderline->setAnchorPoint(ccp(0, 0));
+    pScoreUnderline->setPosition(ccp(0, -5));
+    pScore->addChild(pScoreUnderline);
     
     
+    pLevelBonus = CCLabelTTF::create("Level Bonus", "Arial", 25);
+    pLevelBonus->setColor(ccc3(0, 0, 255));
+    pLevelBonus->setRotation(-15);
+    pLevelBonus->setAnchorPoint(ccp(0, 0));
+    pLevelBonus->setPosition(ccp(30, pHeight-250));
+    pPopup->addChild(pLevelBonus);
+    
+    char levelBonus[12];
+    sprintf(levelBonus, "+ %d", 0);
+    pLevelBonusCapacity = CCLabelTTF::create(levelBonus, "Arial", 40);
+    pLevelBonusCapacity->setColor(ccc3(0, 0, 0));
+    pLevelBonusCapacity->setAnchorPoint(ccp(0, 0));
+    pLevelBonusCapacity->setPosition(ccp(30+pLevelBonus->getContentSize().width+30, pHeight-250));
+    pPopup->addChild(pLevelBonusCapacity);
+
+    pTypeBonus = CCLabelTTF::create("Type Bonus", "Arial", 30);
+    pTypeBonus->setColor(ccc3(0, 0, 255));
+    pTypeBonus->setRotation(-15);
+    pTypeBonus->setAnchorPoint(ccp(0, 0));
+    pTypeBonus->setPosition(ccp(30, pHeight-350));
+    pPopup->addChild(pTypeBonus);
+    
+    char typeBonus[12];
+    sprintf(typeBonus, "+ %d", 0);
+    pTypeBonusCapacity = CCLabelTTF::create(typeBonus, "Arial", 40);
+    pTypeBonusCapacity->setColor(ccc3(0, 0, 0));
+    pTypeBonusCapacity->setAnchorPoint(ccp(0, 0));
+    pTypeBonusCapacity->setPosition(ccp(30+pTypeBonus->getContentSize().width+30, pHeight-350));
+    pPopup->addChild(pTypeBonusCapacity);
+    
+    pAcquiredExp = CCLabelTTF::create("Acquired Exp", "Arial", 30);
+    pAcquiredExp->setColor(ccc3(0, 0, 255));
+    pAcquiredExp->setRotation(-15);
+    pAcquiredExp->setAnchorPoint(ccp(0, 0));
+    pAcquiredExp->setPosition(ccp(30, pHeight-450));
+    pPopup->addChild(pAcquiredExp);
+    
+    char acqExp[12];
+    sprintf(acqExp, "+ %.3lf kg", fAcquiredWeight);
+    pAcquiredExpCapacity = CCLabelTTF::create(acqExp, "Arial", 40);
+    pAcquiredExpCapacity->setColor(ccc3(0, 0, 0));
+    pAcquiredExpCapacity->setAnchorPoint(ccp(0, 0));
+    pAcquiredExpCapacity->setPosition(ccp(30+pAcquiredExp->getContentSize().width+30, pHeight-450));
+    pPopup->addChild(pAcquiredExpCapacity);
+    
+    pIngredientBg1 = CCSprite::create("images/progressbar.png", CCRectMake(0, 0, pWidth-60, 300));
+    pIngredientBg1->setColor(ccc3(255, 0, 0));
+    pIngredientBg1->setAnchorPoint(ccp(0, 1));
+    pIngredientBg1->setPosition(ccp(30, pHeight-480));
+    pPopup->addChild(pIngredientBg1);
+    pIngredientBg2 = CCSprite::create("images/progressbar.png", CCRectMake(0, 0, pWidth-60-10, 300-10));
+    pIngredientBg2->setColor(ccc3(255, 255, 255));
+    pIngredientBg2->setAnchorPoint(ccp(0, 1));
+    pIngredientBg2->setPosition(ccp(30+5, pHeight-480-5));
+    pPopup->addChild(pIngredientBg2);
+    
+    CCSize bg2wh = pIngredientBg2->getContentSize();
+    CCTexture2D* texture = CCTextureCache::sharedTextureCache()->addImage("images/all_pieces_score.png");
+    std::vector<CCPoint> pos;
+    pos.push_back(ccp(60, bg2wh.height-60));
+    pos.push_back(ccp(bg2wh.width/2, bg2wh.height-60));
+    pos.push_back(ccp(bg2wh.width-60, bg2wh.height-60));
+    pos.push_back(ccp(60, 60));
+    pos.push_back(ccp(bg2wh.width/2, 60));
+    pos.push_back(ccp(bg2wh.width-60, 60));
+    for (int i = 0 ; i < TYPE_COUNT ; i++)
+    {
+        CCSprite* piece = new CCSprite();
+        piece->initWithTexture(texture, CCRectMake(i*OBJECT_WIDTH, 0, OBJECT_WIDTH, OBJECT_HEIGHT));
+        piece->setPosition(pos[i]);
+        piece->setOpacity(150);
+        pIngredientBg2->addChild(piece);
+        pPieces.push_back(piece);
+        
+        CCLabelTTF* number = CCLabelTTF::create("5", "Arial", 60);
+        number->setPosition(ccp(piece->getContentSize().width/2, piece->getContentSize().height/2));
+        number->setColor(ccc3(0, 0, 0));
+        piece->addChild(number);
+        pAcquired.push_back(number);
+    }
+    
+    pConfirmBtn = CCSprite::create("images/progressbar.png", CCRectMake(0, 0, 200, 100));
+    pConfirmBtn->setColor(ccc3(0, 0, 0));
+    pConfirmBtn->setAnchorPoint(ccp(0.5, 0));
+    pConfirmBtn->setPosition(ccp(pWidth/2, 20));
+    pPopup->addChild(pConfirmBtn);
+    
+    setTouchEnabled(true);
     
     return true;
 }
+
+
+void GameEndLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
+{
+    CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
+    CCPoint point = pTouch->getLocation();
+    
+    if (pConfirmBtn->boundingBox().containsPoint(point))
+    {
+        isConfirming = true;
+    }
+}
+
+void GameEndLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
+{
+    CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
+    CCPoint point = pTouch->getLocation();
+    
+    if (isConfirming && pConfirmBtn->boundingBox().containsPoint(point))
+    {
+        // post request
+        CCHttpRequest* req = new CCHttpRequest();
+        req->setUrl("http://14.63.225.203/poops/game/update_score.php");
+        req->setRequestType(CCHttpRequest::kHttpPost);
+        req->setResponseCallback(this, callfuncND_selector(GameEndLayer::onHttpRequestCompleted));
+        // write data
+        const char* username = "yjjung";
+        char postData[100];
+        sprintf(postData, "user_name=%s&score=%d", username, iScore);
+        req->setRequestData(postData, strlen(postData));
+        CCHttpClient::getInstance()->send(req);
+        req->release();
+        CCLog("post data were sent.");
+    }
+    
+    isConfirming = false;
+}
+
+void GameEndLayer::onHttpRequestCompleted(CCNode *sender, void *data)
+{
+    CCLog("request completed");
+    CCHttpResponse* res = (CCHttpResponse*) data;
+    if (!res)
+        return;
+    
+    
+}
+
 
 void GameEndLayer::doClose(CCObject* pSender)
 {
@@ -48,5 +232,7 @@ void GameEndLayer::doClose(CCObject* pSender)
     CCNotificationCenter::sharedNotificationCenter()->postNotification("noti", popParam);
     this->removeFromParentAndCleanup(true);
 }
+
+
 
 

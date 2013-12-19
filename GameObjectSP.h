@@ -30,8 +30,8 @@ public:
 	void SetGameLayer(GameLayer* pGameLayer);
     GameLayer* GetGameLayer();
     
-    void CreateSpriteSP(int type_sp, GameLayer* gameLayer);
-    void CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld, int rd);
+    //void CreateSpriteSP(int type_sp, GameLayer* gameLayer);
+    void CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld, int rd, int type_sp);
     
     void SetPositions(int x, int y);
     void AddChildren(GameLayer* gameLayer, int zOrder);

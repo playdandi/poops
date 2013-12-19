@@ -3,9 +3,11 @@
 
 #include "Common.h"
 #include "Sound.h"
+#include "cocos-ext.h"
 
+using namespace cocos2d::extension;
 
-class RaisingLayer : public CCLayer
+class RaisingLayer : public CCLayerColor
 {
 public:
 	bool init();
@@ -15,28 +17,45 @@ public:
 	void ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent);
 	void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);
     
-	static CCScene* scene();
+	//static CCScene* scene(std::vector<int> data, float weight);
+    static CCScene* scene();
 	CREATE_FUNC(RaisingLayer);
+    
+    void SetData();
     
     void showMoney();
     void showHeart();
     void showObject();
     void showMenu();
     
-    char* getTypeName(int type);
+    std::string getTypeName(int type);
+    
+    void onHttpRequestCompleted(CCNode *sender, void *data);
     
 protected:
-    Sound* sound;
+    CCSize winSize;
     
-    CCSprite* pCashMoneySprite;
-    CCSprite* pGameMoneySprite;
-    CCSprite* pHeartFullSprite;
-    CCSprite* pHeartEmptySprite;
+    CCTexture2D* pResCashGold;
+    CCTexture2D* pResHeart;
+    CCTexture2D* pResTopBg;
+    CCTexture2D* pResRaisingTag;
+    CCTexture2D* pResBtns;
+    CCTexture2D* pResObject;
+    
+    CCSprite* pTopBackgroundSprite;
+    CCSprite* pCashSprite;
+    CCLabelTTF* pCashLabel;
+    CCSprite* pGoldSprite;
+    CCLabelTTF* pGoldLabel;
+    std::vector<CCSprite*> pHeartSprite;
     CCLabelTTF* pHeartTimeLabel;
     
-    CCSprite* pBackgroundSprite;
+    //CCSprite* pBackgroundSprite;
     CCSprite* pObjectSprite;
     CCSprite* pObjectInfoSprite;
+    CCLabelTTF* pObjectInfoAge;
+    CCLabelTTF* pObjectInfoType;
+    CCLabelTTF* pObjectInfoWeight;
     
     CCSprite* pMenuFeeding;
     CCSprite* pMenuRanking;
@@ -45,12 +64,19 @@ protected:
 private:
     bool isTouchLocked;
     bool isObjectInfoSpriteShown;
-    
+    /*
     int iRemainingHeartTime;
+    int iRemainingHeartNum;
+    
     int iRemainingObjectTime;
     int iAge;
     int iType;
-    double iWeight;
+    float iWeight;
+    
+    //int iCash;
+    int iGold;
+    int iMaxScore;
+     */
 };
 
 #endif /* defined(__poops8__RaisingLayer__) */

@@ -46,8 +46,15 @@ bool GameLayer::init()
 
 	m_winSize = CCDirector::sharedDirector()->getWinSize();
 
-    // score & score label
+    // init values.
     iScore = 0;
+    iLevelBonus = 0;
+    iTypeBonus = 0;
+    fAcquiredWeight = 0.0f;
+    for (int i = 0 ; i < TYPE_COUNT ; i++)
+        ingredient.push_back(0);
+    
+    // score & score label
     scoreLabel = CCLabelTTF::create("0", "Arial", 80);
     scoreLabel->setAnchorPoint(ccp(1.0f, 0.5f));
     scoreLabel->setPosition(ccp(m_winSize.width-20, m_winSize.height-50));
@@ -74,8 +81,6 @@ bool GameLayer::init()
     puzzleTime->setColor(ccc3(0, 0, 0));
     addChild(puzzleTime);
     
-    //CCLog("%f", progressTimer->getPercentage());
-
    	setTouchEnabled(false);
     
     readyTime = CCLabelTTF::create("3", "Arial", 60);
@@ -85,6 +90,7 @@ bool GameLayer::init()
     iStartTimer = 4;
     iRemainingPuzzleTime = 5.0f;
     this->schedule(schedule_selector(GameLayer::ReadyTimer), 0.5f);
+    
     
     // set notification
     // 'noti' 라는 메시지가 오면 해당 함수(doNotification)를 실행한다.
@@ -261,7 +267,7 @@ void GameLayer::PuzzleTimer(float f)
 
 void GameLayer::ShowPuzzleResult()
 {
-    CCScene* pScene = GameEndLayer::scene();
+    CCScene* pScene = GameEndLayer::scene(iScore, iLevelBonus, iTypeBonus, fAcquiredWeight);
     this->addChild(pScene, 2000, 2000);
 }
 
@@ -566,6 +572,9 @@ void GameLayer::BombObject()
                     NULL);
             pGameObject->runAction(action);
         }
+        
+        // weight 랜덤하게 추가 (0.001 ~ 0.009)
+        fAcquiredWeight += 0.0010*(float)(rand()%9+1);
     }
     
     sound->playBombSound();
@@ -669,15 +678,22 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
         {
             for (int y = 1 ; y < ROW_COUNT ; y++)
             {
-                if (m_pBoardSP[x][y]->GetType() == CONNECTED)
+                //if (m_pBoardSP[x][y]->GetType() == CONNECTED)
+                if (m_pBoardSP[x][y]->GetType() != BLOCKED)
                 {
+                    int type_sp = -1;
+                    if (m_pBoardSP[x][y]->GetType() == SPECIAL)
+                    {
+                        type_sp = m_pBoardSP[x][y]->GetTypeSP();
+                    }
+                    
                     m_pBoardSP[x][y]->RemoveChildren();
-
                     m_pBoardSP[x][y]->CreateSpriteDia(this,
                                                     m_pBoard[x-1][y]->GetType(),
                                                     m_pBoard[x][y]->GetType(),
                                                     m_pBoard[x-1][y-1]->GetType(),
-                                                    m_pBoard[x][y-1]->GetType());
+                                                    m_pBoard[x][y-1]->GetType(),
+                                                    type_sp);
                     m_pBoardSP[x][y]->SetPositions(x, y);
                     m_pBoardSP[x][y]->AddChildren(this, zGameObjectSP);
                 }
@@ -712,4 +728,9 @@ void GameLayer::UpdateScore()
     char score[8];
     sprintf(score, "%d", iScore);
     scoreLabel->setString(score);
+}
+
+int GameLayer::GetScore()
+{
+    return iScore;
 }
