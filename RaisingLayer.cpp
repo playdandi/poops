@@ -1,17 +1,6 @@
 #include "RaisingLayer.h"
 #include "GameLayer.h"
-
-extern int iCash;
-extern int iGold;
-extern int iRemainingHeartTime;
-extern int iRemainingHeartNum;
-extern int iRemainingObjectTime;
-extern int iAge;
-extern int iType;
-extern float fWeight;
-extern int iMaxScore;
-extern std::string sUsername;
-
+#include <sstream>
 
 CCScene* RaisingLayer::scene()
 {
@@ -119,16 +108,69 @@ void RaisingLayer::showHeart()
         addChild(sprite);
     }
     
-    char time[6];
-    if (iRemainingHeartNum == 5)
-        sprintf(time, "FULL");
-    else
-        sprintf(time, "11:34");
-    pHeartTimeLabel = CCLabelTTF::create(time, "Arial", 35);
+
+    pHeartTimeLabel = CCLabelTTF::create(GetHeartTimeLabel().c_str(), "Arial", 35);
     pHeartTimeLabel->setAnchorPoint(ccp(1, 1));
     pHeartTimeLabel->setColor(ccc3(0, 0, 0));
     pHeartTimeLabel->setPosition(ccp(winSize.width-35, winSize.height-100));
     addChild(pHeartTimeLabel);
+    
+    if (iRemainingHeartNum < 5)
+    {
+        this->schedule(schedule_selector(RaisingLayer::HeartTimer), 1.0f);
+    }
+}
+
+std::string RaisingLayer::GetHeartTimeLabel()
+{
+    std::string time;
+    
+    if (iRemainingHeartNum >= 5)
+    {
+        time = "FULL";
+    }
+    else
+    {
+        int min = iRemainingHeartTime / 60;
+        int sec = iRemainingHeartTime % 60;
+        std::ostringstream osm;
+        osm << min;
+        std::string sMin = osm.str();
+        std::ostringstream oss;
+        oss << sec;
+        std::string sSec = oss.str();
+        if (min < 10)
+            sMin = "0" + sMin;
+        if (sec < 10)
+            sSec = "0" + sSec;
+        
+        time = sMin + " : " + sSec;
+    }
+    
+    return time;
+}
+void RaisingLayer::HeartTimer()
+{
+    iRemainingHeartTime--;
+    if (iRemainingHeartTime < 0)
+    {
+        iRemainingHeartTime = 720;
+        
+        CCSprite* sprite = new CCSprite();
+        sprite->initWithTexture(pResHeart, CCRectMake(0, 0, 60, 60));
+        sprite->setAnchorPoint(ccp(0, 1));
+        sprite->setPosition(ccp(350+80*iRemainingHeartNum, winSize.height-20));
+        pHeartSprite.push_back(sprite);
+        addChild(sprite);
+        
+        iRemainingHeartNum++;
+        if (iRemainingHeartNum >= 5)
+        {
+            this->unschedule(schedule_selector(RaisingLayer::HeartTimer));
+        }
+    }
+    
+    pHeartTimeLabel->setString(GetHeartTimeLabel().c_str());
 }
 
 void RaisingLayer::showObject()
@@ -227,7 +269,7 @@ void RaisingLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
             CCHttpRequest* req = new CCHttpRequest();
             req->setUrl("http://14.63.225.203/poops/game/puzzle_start.php");
             req->setRequestType(CCHttpRequest::kHttpPost);
-            req->setResponseCallback(this, callfuncND_selector(RaisingLayer::onHttpRequestCompleted));
+            req->setResponseCallback(this, httpresponse_selector(RaisingLayer::onHttpRequestCompleted));
             // write data
             char postData[25];
             sprintf(postData, "user_name=%s", sUsername.c_str());
@@ -294,8 +336,8 @@ void RaisingLayer::onHttpRequestCompleted(CCNode *sender, void *data)
         dumpData[i] = (*buffer)[i];
     }
     dumpData[buffer->size()] = NULL;
-    CCLog("%s", dumpData);
-    CCLog("=============================");
+    //CCLog("%s", dumpData);
+    //CCLog("=============================");
     
     
     // xml

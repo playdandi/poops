@@ -28,7 +28,9 @@ public:
     void showObject();
     void showMenu();
     
+    std::string GetHeartTimeLabel();
     std::string getTypeName(int type);
+    void HeartTimer();
     
     void onHttpRequestCompleted(CCNode *sender, void *data);
     

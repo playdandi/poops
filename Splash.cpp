@@ -7,17 +7,6 @@ using namespace pugi;
 
 bool isStarting = false;
 
-extern int iCash;
-extern int iGold;
-extern int iRemainingHeartTime;
-extern int iRemainingHeartNum;
-extern int iRemainingObjectTime;
-extern int iAge;
-extern int iType;
-extern float fWeight;
-extern int iMaxScore;
-extern std::string sUsername;
-
 
 CCScene* Splash::scene()
 {
@@ -173,7 +162,7 @@ void Splash::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
             CCHttpRequest* req = new CCHttpRequest();
             req->setUrl("http://14.63.225.203/poops/game/login.php");
             req->setRequestType(CCHttpRequest::kHttpPost);
-            req->setResponseCallback(this, callfuncND_selector(Splash::onHttpRequestCompleted));
+            req->setResponseCallback(this, httpresponse_selector(Splash::onHttpRequestCompleted));
             // write data
             char postData[25];
             sprintf(postData, "user_name=%s", sUsername.c_str());
@@ -213,65 +202,17 @@ void Splash::onHttpRequestCompleted(CCNode *sender, void *data)
         dumpData[i] = (*buffer)[i];
     }
     dumpData[buffer->size()] = NULL;
-    CCLog("%s", dumpData);
-    CCLog("==================================");
+    //CCLog("%s", dumpData);
+    //CCLog("==================================");
     
     // save
     CCUserDefault::sharedUserDefault()->setStringForKey("username", sUsername);
  
-    
-    
+    // xml
     if (Common::XmlParseMoneyRaisePuzzle(dumpData, buffer->size(), true))
     {
         GoToNextScene();
     }
-    /*
-    // xml parsing
-    xml_document xmlDoc;
-    xml_parse_result result = xmlDoc.load_buffer(dumpData, buffer->size());
-
-    if (!result)
-    {
-        CCLog("error description: %s", result.description());
-        CCLog("error offset: %d", result.offset);
-        return;
-    }
-    
-    // get several data
-    xml_node nodeResult = xmlDoc.child("response");
-    int code = nodeResult.child("code").text().as_int();
-    //CCLog("code = %d", code);
-    
-    if (code == 0)
-    {
-        // http 통신 성공 - 다른 항목들 받은 후, raise scene으로 넘어간다.
-        std::vector<int> data;
-        int cash = nodeResult.child("money").attribute("cash").as_int();
-        int gold = nodeResult.child("money").attribute("gold").as_int();
-        int age = nodeResult.child("raise").attribute("age").as_int();
-        int type = nodeResult.child("raise").attribute("type").as_int();
-        float weight = nodeResult.child("raise").attribute("weight").as_float();
-        int maxScore = nodeResult.child("puzzle").attribute("max-score").as_int();
-        int heartNum = nodeResult.child("puzzle").attribute("heart-num").as_int();
-        data.push_back(cash);
-        data.push_back(gold);
-        data.push_back(age);
-        data.push_back(type);
-        data.push_back(maxScore);
-        data.push_back(heartNum);
-        
-        CCLog("cash = %d", cash);
-        CCLog("gold = %d", gold);
-        CCLog("age = %d", age);
-        CCLog("type = %d", type);
-        CCLog("weight = %f", weight);
-        CCLog("maxScore = %d", maxScore);
-        CCLog("heart = %d", heartNum);
-     
-        
-        GoToNextScene(data, weight);
-    }
-    */
 }
 
 

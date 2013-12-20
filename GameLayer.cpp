@@ -17,6 +17,8 @@ bool GameLayer::init()
 		return false;
 	}
     
+    isFinished = false;
+    
     // enabling keypad
     this->setKeypadEnabled(true);
     
@@ -75,7 +77,7 @@ bool GameLayer::init()
     progressTimer->setPosition(ccp(0, OBJECT_HEIGHT));
     addChild(progressTimer);
     
-    puzzleTime = CCLabelTTF::create("5", "Arial", 80);
+    puzzleTime = CCLabelTTF::create("30", "Arial", 80);
     puzzleTime->setAnchorPoint(ccp(1.0f, 1.0f));
     puzzleTime->setPosition(ccp(m_winSize.width-OBJECT_WIDTH, OBJECT_HEIGHT+20));
     puzzleTime->setColor(ccc3(0, 0, 0));
@@ -88,18 +90,19 @@ bool GameLayer::init()
     addChild(readyTime);
     
     iStartTimer = 4;
-    iRemainingPuzzleTime = 5.0f;
+    iRemainingPuzzleTime = 30.0f;
     this->schedule(schedule_selector(GameLayer::ReadyTimer), 0.5f);
     
     
     // set notification
     // 'noti' 라는 메시지가 오면 해당 함수(doNotification)를 실행한다.
-    CCNotificationCenter::sharedNotificationCenter()->addObserver(
-                                this, callfuncO_selector(GameLayer::doNotification), "noti", NULL);
+    //CCNotificationCenter::sharedNotificationCenter()->addObserver(
+    //                            this, callfuncO_selector(GameLayer::doNotification), "noti", NULL);
     
 	return true;
 }
 
+/*
 void GameLayer::doNotification(CCObject* obj)
 {
     //노티피케이션 받기
@@ -124,6 +127,7 @@ void GameLayer::doNotification(CCObject* obj)
         //메뉴버튼 비활성
 	}
 }
+*/
 
 
 
@@ -261,6 +265,8 @@ void GameLayer::PuzzleTimer(float f)
     if (iRemainingPuzzleTime <= 0.0f)
     {
         this->unschedule(schedule_selector(GameLayer::PuzzleTimer));
+        sound->StopBackgroundSound();
+        isFinished = true;
         ShowPuzzleResult();
     }
 }
@@ -268,7 +274,10 @@ void GameLayer::PuzzleTimer(float f)
 void GameLayer::ShowPuzzleResult()
 {
     CCScene* pScene = GameEndLayer::scene(iScore, iLevelBonus, iTypeBonus, fAcquiredWeight);
+    
     this->addChild(pScene, 2000, 2000);
+    
+//    CCDirector::sharedDirector()->pause();
 }
 
 
@@ -281,7 +290,7 @@ bool isValidPosition(int x, int y)
 void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
 {
     // CCLog("touch began");
-    if (m_bIsBombing)
+    if (m_bIsBombing || isFinished)
         return;
     
     CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
@@ -341,7 +350,7 @@ void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
 void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
 {
     // CCLog("touch moved");
-    if (m_bIsBombing)
+    if (m_bIsBombing || isFinished)
         return;
     
 	if (m_bTouchStarted)
@@ -448,7 +457,7 @@ inline bool GameLayer::AlreadySelected(int x, int y)
 
 void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
 {
-    if (m_bIsBombing)
+    if (m_bIsBombing || isFinished)
         return;
     
     if (m_bTouchStarted)
@@ -576,6 +585,8 @@ void GameLayer::BombObject()
         // weight 랜덤하게 추가 (0.001 ~ 0.009)
         fAcquiredWeight += 0.0010*(float)(rand()%9+1);
     }
+    // score update
+    UpdateScore();
     
     sound->playBombSound();
 }
@@ -586,9 +597,6 @@ void GameLayer::BombCallback()
     
     if (m_callbackCnt == hanbut.size())
     {
-        // score update
-        UpdateScore();
-        
         // bomb action이 끝나면 한붓그리기 상의 모든 조각을 제거한다.
         for (int i = 0 ; i < hanbut.size() ; i++)
         {

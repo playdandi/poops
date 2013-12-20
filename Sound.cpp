@@ -29,3 +29,8 @@ void Sound::playBackgroundSound()
 {
     SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sounds/background.mp3", true);
 }
+
+void Sound::StopBackgroundSound()
+{
+    SimpleAudioEngine::sharedEngine()->stopBackgroundMusic();
+}

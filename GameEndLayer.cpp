@@ -1,5 +1,6 @@
 #include "GameEndLayer.h"
 #include "GameLayer.h"
+#include "RaisingLayer.h"
 
 using namespace cocos2d;
 
@@ -37,8 +38,8 @@ bool GameEndLayer::init()
     // 바꾸는 방법이 있지만 [ignoreAnchorPointForPosition(false) 호출], 바꾸지 않는게 낫다.
     // cf) CCLayer's init method calls ignoreAnchorPointForPosition(true);.
     
-    CCString* popParam = CCString::create("0");
-    CCNotificationCenter::sharedNotificationCenter()->postNotification("noti", popParam);
+    //CCString* popParam = CCString::create("0");
+    //CCNotificationCenter::sharedNotificationCenter()->postNotification("noti", popParam);
     
     winSize = CCDirector::sharedDirector()->getWinSize();
     
@@ -70,6 +71,16 @@ bool GameEndLayer::init()
     pYourScore->setPosition(ccp(30, pHeight-100));
     pPopup->addChild(pYourScore);
     
+    if (iScore > iMaxScore)
+    {
+        pHighScore = CCLabelTTF::create("High Score!", "Arial", 30);
+        pHighScore->setColor(ccc3(255, 0, 0));
+        pHighScore->setRotation(-10);
+        pHighScore->setAnchorPoint(ccp(0.5, 0));
+        pHighScore->setPosition(ccp(pWidth/2, pHeight-70));
+        pPopup->addChild(pHighScore);
+    }
+    
     char score[8];
     sprintf(score, "%d", iScore);
     pScore = CCLabelTTF::create(score, "Arial", 50);
@@ -86,7 +97,7 @@ bool GameEndLayer::init()
     pScore->addChild(pScoreUnderline);
     
     
-    pLevelBonus = CCLabelTTF::create("Level Bonus", "Arial", 25);
+    pLevelBonus = CCLabelTTF::create("Level Bonus", "Arial", 30);
     pLevelBonus->setColor(ccc3(0, 0, 255));
     pLevelBonus->setRotation(-15);
     pLevelBonus->setAnchorPoint(ccp(0, 0));
@@ -186,12 +197,26 @@ void GameEndLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
     
     if (pConfirmBtn->boundingBox().containsPoint(point))
     {
-        isConfirming = true;
+        //isConfirming = true;
+        // post request
+        CCHttpRequest* req = new CCHttpRequest();
+        req->setUrl("http://14.63.225.203/poops/game/update_score.php");
+        req->setRequestType(CCHttpRequest::kHttpPost);
+
+        req->setResponseCallback(this, httpresponse_selector(GameEndLayer::onHttpRequestCompleted2));
+        //req->setResponseCallback(this, callfuncND_selector(GameEndLayer::onHttpRequestCompleted));
+        // write data
+        char postData[50];
+        sprintf(postData, "user_name=%s&score=%d", sUsername.c_str(), iScore);
+        req->setRequestData(postData, strlen(postData));
+        CCHttpClient::getInstance()->send(req);
+        req->release();
+        //CCLog("post send");
     }
 }
 
 void GameEndLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
-{
+{/*
     CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
     CCPoint point = pTouch->getLocation();
     
@@ -203,26 +228,56 @@ void GameEndLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
         req->setRequestType(CCHttpRequest::kHttpPost);
         req->setResponseCallback(this, callfuncND_selector(GameEndLayer::onHttpRequestCompleted));
         // write data
-        const char* username = "yjjung";
-        char postData[100];
-        sprintf(postData, "user_name=%s&score=%d", username, iScore);
+        char postData[50];
+        sprintf(postData, "user_name=%s&score=%d", sUsername.c_str(), iScore);
         req->setRequestData(postData, strlen(postData));
         CCHttpClient::getInstance()->send(req);
         req->release();
-        CCLog("post data were sent.");
+        CCLog("post send");
     }
     
     isConfirming = false;
+  */
 }
 
-void GameEndLayer::onHttpRequestCompleted(CCNode *sender, void *data)
+void GameEndLayer::onHttpRequestCompleted2(CCNode *sender, void *data)
 {
-    CCLog("request completed");
+    //CCLog("http done");
     CCHttpResponse* res = (CCHttpResponse*) data;
+    
     if (!res)
         return;
     
+    int statusCode = res->getResponseCode();
+    //char statusString[64] = {};
+    //sprintf(statusString, "Http Status Code: %d, tag = %s", statusCode, res->getHttpRequest()->getTag());
+    CCLog("response code : %d", statusCode);
     
+    if (!res->isSucceed())
+    {
+        CCLog("res failed. error buffer: %s", res->getErrorBuffer());
+        return;
+    }
+    
+    // dump data
+    std::vector<char> *buffer = res->getResponseData();
+    char dumpData[buffer->size()+1];
+    for (unsigned int i = 0 ; i < buffer->size() ; i++)
+    {
+        dumpData[i] = (*buffer)[i];
+    }
+    dumpData[buffer->size()] = NULL;
+    //CCLog("%s", dumpData);
+    //CCLog("==================================");
+    
+    
+    // xml
+    if (Common::XmlParsePuzzleDone(dumpData, buffer->size()))
+    {
+        // go to RaisingLayer scene
+        CCScene* pNextScene = RaisingLayer::scene();
+        CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(1.0f, pNextScene));
+    }
 }
 
 

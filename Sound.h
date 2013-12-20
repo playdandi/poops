@@ -10,6 +10,7 @@ public:
     void playTouchSound();
     void playBombSound();
     void playBackgroundSound();
+    void StopBackgroundSound();
 };
 
 #endif /* defined(__poops__Sound__) */

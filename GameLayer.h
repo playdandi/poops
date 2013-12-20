@@ -22,7 +22,7 @@ public:
     void ReadyTimer(float f);
     void PuzzleTimer(float f);
 
-    void doNotification(CCObject* obj);
+    //void doNotification(CCObject* obj);
     void ShowPuzzleResult();
 
 	void ProcessFalling();
@@ -84,6 +84,8 @@ protected:
     CCProgressTimer* progressTimer;
     
 private:
+    bool isFinished;
+    
     int iStartTimer;
     float iRemainingPuzzleTime;
     
