@@ -149,7 +149,8 @@ std::string RaisingLayer::GetHeartTimeLabel()
     
     return time;
 }
-void RaisingLayer::HeartTimer()
+
+void RaisingLayer::HeartTimer(float f)
 {
     iRemainingHeartTime--;
     if (iRemainingHeartTime < 0)
@@ -269,7 +270,8 @@ void RaisingLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
             CCHttpRequest* req = new CCHttpRequest();
             req->setUrl("http://14.63.225.203/poops/game/puzzle_start.php");
             req->setRequestType(CCHttpRequest::kHttpPost);
-            req->setResponseCallback(this, httpresponse_selector(RaisingLayer::onHttpRequestCompleted));
+            req->setResponseCallback(this, callfuncND_selector(RaisingLayer::onHttpRequestCompleted));
+            //req->setResponseCallback(this, httpresponse_selector(RaisingLayer::onHttpRequestCompleted));
             // write data
             char postData[25];
             sprintf(postData, "user_name=%s", sUsername.c_str());

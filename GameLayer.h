@@ -21,6 +21,7 @@ public:
     void SetOpacities(int alpha);
     void ReadyTimer(float f);
     void PuzzleTimer(float f);
+    void ComboTimer(float f);
 
     //void doNotification(CCObject* obj);
     void ShowPuzzleResult();
@@ -32,6 +33,7 @@ public:
 	void ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent);
 	void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);
     inline bool AlreadySelected(int x, int y);
+    void ShowComboLabel();
     void TouchCallback();
     
     void BombObject();
@@ -42,11 +44,12 @@ public:
     CCTexture2D* GetPuzzleSP();
     
     void UpdateScore();
-	
-	static CCScene* scene();
+	int GetScore();
     
-    int GetScore();
-
+    void FindLargestMass();
+    void FindLargestMassRecur(int* num, int cnt, int* check, int x, int y, int type);
+    
+    static CCScene* scene();
 	CREATE_FUNC(GameLayer);
 
 protected:
@@ -82,6 +85,7 @@ protected:
     CCLabelTTF* puzzleTime;
     CCLabelTTF* scoreLabel;
     CCProgressTimer* progressTimer;
+    CCLabelTTF* comboLabel;
     
 private:
     bool isFinished;
@@ -94,6 +98,11 @@ private:
     int iTypeBonus;
     float fAcquiredWeight;
     std::vector<int> ingredient;
+    
+    int iPassedComboTime;
+    int iNumOfCombo;
+    
+    int iNumOfPieceOfLargestMass;
 };
 
 #endif

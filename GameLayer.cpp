@@ -36,14 +36,6 @@ bool GameLayer::init()
 	pBackgroundSprite->setAnchorPoint(ccp(0.0f, 0.0f));
 	addChild(pBackgroundSprite, zBackground);
     
-    /*
-    // refresh button
-    pRefreshSprite = CCSprite::create("images/refresh.png");
-    pRefreshSprite->setPosition(ccp(CCDirector::sharedDirector()->getWinSize().width/2, 64));
-    pRefreshSprite->setScale(0.5f);
-    addChild(pRefreshSprite, zBackground);
-    */
-    
     sound->playBackgroundSound();
 
 	m_winSize = CCDirector::sharedDirector()->getWinSize();
@@ -64,6 +56,8 @@ bool GameLayer::init()
     
     // puzzle board
 	StartGame();
+
+    FindLargestMass();
     
     // timer progressbar && puzzletime label
     CCSprite* pBar = CCSprite::create("images/progressbar.png", CCRectMake(0, 0, OBJECT_WIDTH*6, 30));
@@ -93,6 +87,14 @@ bool GameLayer::init()
     iRemainingPuzzleTime = 30.0f;
     this->schedule(schedule_selector(GameLayer::ReadyTimer), 0.5f);
     
+    comboLabel = CCLabelTTF::create("test", "Arial", 100);
+    comboLabel->setOpacity(0);
+    comboLabel->setPosition(ccp(m_winSize.width/2, m_winSize.height/2));
+    comboLabel->setRotation(-15);
+    addChild(comboLabel, 1000);
+    
+    iPassedComboTime = 0;
+    iNumOfCombo = 0;
     
     // set notification
     // 'noti' 라는 메시지가 오면 해당 함수(doNotification)를 실행한다.
@@ -269,6 +271,18 @@ void GameLayer::PuzzleTimer(float f)
         isFinished = true;
         ShowPuzzleResult();
     }
+}
+
+void GameLayer::ComboTimer(float f)
+{
+    iPassedComboTime += 100;
+    if (iPassedComboTime >= 2000)
+    {
+        iPassedComboTime = 0;
+        iNumOfCombo = 0;
+        this->unschedule(schedule_selector(GameLayer::ComboTimer));
+    }
+    
 }
 
 void GameLayer::ShowPuzzleResult()
@@ -455,6 +469,15 @@ inline bool GameLayer::AlreadySelected(int x, int y)
 }
 
 
+void GameLayer::ShowComboLabel()
+{
+    char n[10];
+    sprintf(n, "%d Combo!", iNumOfCombo);
+    comboLabel->setString(n);
+    CCFiniteTimeAction* action = CCSequence::create(CCFadeIn::create(0.15f), CCFadeOut::create(0.15f), NULL);
+    comboLabel->runAction(action);
+}
+
 void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
 {
     if (m_bIsBombing || isFinished)
@@ -472,7 +495,27 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
         
         if (hanbut.size() >= 3)
         {
-            // 3개 이상 한붓그리기 했으면 터뜨려야지!
+            // 3개 이상 한붓그리기 했으면, combo schedule 적용하고, 터뜨려야지!
+            iNumOfCombo++;
+            iPassedComboTime = 0;
+            if (iNumOfCombo == 1) // 1st combo
+            {
+                this->schedule(schedule_selector(GameLayer::ComboTimer), 0.1f);
+            }
+            ShowComboLabel();
+            
+            // 6개 이상 터뜨리면 랜덤한 위치에 diamond item,
+            if (hanbut.size() >= 6)
+            {
+                CCLog("Give diamond item at random position.");
+            }
+            // 가장 큰덩어리 다 터뜨리면(7개 이상) 8각형 item 주는 부분.
+            if (iNumOfPieceOfLargestMass >= LARGEST_MASS_LOWER_BOUND &&
+                    hanbut.size() >= iNumOfPieceOfLargestMass)
+            {
+                CCLog("Give hectagon item at random position.");
+            }
+            
             BombObject();
         }
         else
@@ -708,6 +751,9 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
             }
         }
         
+        // 가장 큰 덩어리를 구성하는 piece 개수 구한다.
+        FindLargestMass();
+        
         m_bTouchStarted = false;
         m_bIsBombing = false;
 	}
@@ -742,3 +788,53 @@ int GameLayer::GetScore()
 {
     return iScore;
 }
+
+
+// 가장 큰 덩어리를 구성하는 piece 개수를 구한다.
+void GameLayer::FindLargestMass()
+{
+    iNumOfPieceOfLargestMass = 0;
+    int num = 0;
+    int check[COLUMN_COUNT*ROW_COUNT] = {0,};
+    
+    for (int x = 0 ; x < COLUMN_COUNT ; x++)
+    {
+        for (int y = 0 ; y < ROW_COUNT ; y++)
+        {
+            if (check[x*COLUMN_COUNT+y] == 0)
+            {
+                num = 0;
+                FindLargestMassRecur(&num, 0, check, x, y, m_pBoard[x][y]->GetType());
+                iNumOfPieceOfLargestMass = std::max(iNumOfPieceOfLargestMass, num);
+            }
+        }
+    }
+    //CCLog("larget mass # = %d", iNumOfPieceOfLargestMass);
+}
+
+// 위 함수를 위한 floodfill recursion 함수.
+void GameLayer::FindLargestMassRecur(int* num, int cnt, int* check, int x, int y, int type)
+{
+    *num = *num + 1;
+    check[x*COLUMN_COUNT+y] = 1;
+    
+    if (x > 0 && check[(x-1)*COLUMN_COUNT+y] == 0 && m_pBoard[x-1][y]->GetType() == type)
+        FindLargestMassRecur(num, cnt+1, check, x-1, y, type);
+    if (x < COLUMN_COUNT-1 && check[(x+1)*COLUMN_COUNT+y] == 0 && m_pBoard[x+1][y]->GetType() == type)
+        FindLargestMassRecur(num, cnt+1, check, x+1, y, type);
+    if (y > 0 && check[x*COLUMN_COUNT+y-1] == 0 && m_pBoard[x][y-1]->GetType() == type)
+        FindLargestMassRecur(num, cnt+1, check, x, y-1, type);
+    if (y < ROW_COUNT-1 && check[x*COLUMN_COUNT+y+1] == 0 && m_pBoard[x][y+1]->GetType() == type)
+        FindLargestMassRecur(num, cnt+1, check, x, y+1, type);
+    
+    if (x > 0 && y > 0 && check[(x-1)*COLUMN_COUNT+y-1] == 0 && m_pBoard[x-1][y-1]->GetType() == type &&
+        m_pBoardSP[x][y]->GetType() != BLOCKED)
+        FindLargestMassRecur(num, cnt+1, check, x-1, y-1, type);
+    if (x < COLUMN_COUNT-1 && y > 0 && check[(x+1)*COLUMN_COUNT+y-1] == 0 && m_pBoard[x+1][y-1]->GetType() == type && m_pBoardSP[x+1][y]->GetType() != BLOCKED)
+        FindLargestMassRecur(num, cnt+1, check, x+1, y-1, type);
+    if (x > 0 && y < ROW_COUNT-1 && check[(x-1)*COLUMN_COUNT+y+1] == 0 && m_pBoard[x-1][y+1]->GetType() == type && m_pBoardSP[x][y+1]->GetType() != BLOCKED)
+        FindLargestMassRecur(num, cnt+1, check, x-1, y+1, type);
+    if (x < COLUMN_COUNT-1 && y < ROW_COUNT-1 && check[(x+1)*COLUMN_COUNT+y+1] == 0 && m_pBoard[x+1][y+1]->GetType() == type && m_pBoardSP[x+1][y+1]->GetType() != BLOCKED)
+        FindLargestMassRecur(num, cnt+1, check, x+1, y+1, type);
+}
+

@@ -70,9 +70,8 @@ void Splash::LogoLoadingCompleted()
         // 이름이 저장되지 않은 경우 (처음 실행한 경우)
         m_pEditName = CCEditBox::create(CCSizeMake(384, 96), CCScale9Sprite::create("images/input_name.png"));
         m_pEditName->setPosition(ccp(winSize.width/2, 284));
-        m_pEditName->setFontSize(5);
+        m_pEditName->setFont("Arial", 30);
         m_pEditName->setFontColor(ccBLACK);
-        m_pEditName->setPlaceholderFontSize(5);
         m_pEditName->setMaxLength(8);
         m_pEditName->setPlaceHolder("이름을 입력하세요 (4~8자)");
         m_pEditName->setReturnType(kKeyboardReturnTypeDone);
@@ -162,7 +161,8 @@ void Splash::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
             CCHttpRequest* req = new CCHttpRequest();
             req->setUrl("http://14.63.225.203/poops/game/login.php");
             req->setRequestType(CCHttpRequest::kHttpPost);
-            req->setResponseCallback(this, httpresponse_selector(Splash::onHttpRequestCompleted));
+            req->setResponseCallback(this, callfuncND_selector(Splash::onHttpRequestCompleted));
+            //req->setResponseCallback(this, httpresponse_selector(Splash::onHttpRequestCompleted));
             // write data
             char postData[25];
             sprintf(postData, "user_name=%s", sUsername.c_str());

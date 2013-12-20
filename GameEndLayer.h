@@ -18,7 +18,7 @@ public:
     void ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent);
     void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);
     
-    void onHttpRequestCompleted2(CCNode *sender, void *data);
+    void onHttpRequestCompleted(CCNode *sender, void *data);
     
     CCSize winSize;
     CCSprite* pBackground;

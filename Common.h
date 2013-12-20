@@ -21,6 +21,8 @@ USING_NS_CC;
 #define DIAMOND_WIDTH 56
 #define DIAMOND_HEIGHT 56
 
+#define LARGEST_MASS_LOWER_BOUND 7
+
 using namespace cocos2d;
 
 extern int iCash;

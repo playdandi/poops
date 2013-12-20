@@ -197,26 +197,12 @@ void GameEndLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
     
     if (pConfirmBtn->boundingBox().containsPoint(point))
     {
-        //isConfirming = true;
-        // post request
-        CCHttpRequest* req = new CCHttpRequest();
-        req->setUrl("http://14.63.225.203/poops/game/update_score.php");
-        req->setRequestType(CCHttpRequest::kHttpPost);
-
-        req->setResponseCallback(this, httpresponse_selector(GameEndLayer::onHttpRequestCompleted2));
-        //req->setResponseCallback(this, callfuncND_selector(GameEndLayer::onHttpRequestCompleted));
-        // write data
-        char postData[50];
-        sprintf(postData, "user_name=%s&score=%d", sUsername.c_str(), iScore);
-        req->setRequestData(postData, strlen(postData));
-        CCHttpClient::getInstance()->send(req);
-        req->release();
-        //CCLog("post send");
+        isConfirming = true;
     }
 }
 
 void GameEndLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
-{/*
+{
     CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
     CCPoint point = pTouch->getLocation();
     
@@ -227,20 +213,20 @@ void GameEndLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
         req->setUrl("http://14.63.225.203/poops/game/update_score.php");
         req->setRequestType(CCHttpRequest::kHttpPost);
         req->setResponseCallback(this, callfuncND_selector(GameEndLayer::onHttpRequestCompleted));
+        //req->setResponseCallback(this, httpresponse_selector(GameEndLayer::onHttpRequestCompleted));
         // write data
         char postData[50];
         sprintf(postData, "user_name=%s&score=%d", sUsername.c_str(), iScore);
         req->setRequestData(postData, strlen(postData));
         CCHttpClient::getInstance()->send(req);
         req->release();
-        CCLog("post send");
+        //CCLog("post send");
     }
     
     isConfirming = false;
-  */
 }
 
-void GameEndLayer::onHttpRequestCompleted2(CCNode *sender, void *data)
+void GameEndLayer::onHttpRequestCompleted(CCNode *sender, void *data)
 {
     //CCLog("http done");
     CCHttpResponse* res = (CCHttpResponse*) data;

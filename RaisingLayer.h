@@ -17,7 +17,6 @@ public:
 	void ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent);
 	void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);
     
-	//static CCScene* scene(std::vector<int> data, float weight);
     static CCScene* scene();
 	CREATE_FUNC(RaisingLayer);
     
@@ -30,7 +29,7 @@ public:
     
     std::string GetHeartTimeLabel();
     std::string getTypeName(int type);
-    void HeartTimer();
+    void HeartTimer(float f);
     
     void onHttpRequestCompleted(CCNode *sender, void *data);
     
@@ -66,19 +65,6 @@ protected:
 private:
     bool isTouchLocked;
     bool isObjectInfoSpriteShown;
-    /*
-    int iRemainingHeartTime;
-    int iRemainingHeartNum;
-    
-    int iRemainingObjectTime;
-    int iAge;
-    int iType;
-    float iWeight;
-    
-    //int iCash;
-    int iGold;
-    int iMaxScore;
-     */
 };
 
 #endif /* defined(__poops8__RaisingLayer__) */
