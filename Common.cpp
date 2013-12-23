@@ -11,9 +11,11 @@ int iRemainingHeartNum;
 int iRemainingObjectTime;
 int iAge;
 int iType;
-float fWeight;
+int iWeight;
 int iMaxScore;
 std::string sUsername;
+std::vector<int> vEnabledMaterial;
+std::vector<int> vStoredMaterial;
 
 
 
@@ -43,7 +45,7 @@ int Common::ComputeBoardY(float y)
     return (int)((y-OBJECT_HEIGHT-25)/floorf(OBJECT_HEIGHT));
 }
 
-bool Common::XmlParsePuzzleDone(char* data, int size)
+bool Common::XmlParsePuzzleEnd(char* data, int size)
 {
     // xml parsing
     xml_document xmlDoc;
@@ -62,6 +64,27 @@ bool Common::XmlParsePuzzleDone(char* data, int size)
     
     if (code == 0)
     {
+        iAge = nodeResult.child("raise").attribute("age").as_int();
+        iType = nodeResult.child("raise").attribute("type").as_int();
+        iWeight = nodeResult.child("raise").attribute("weight").as_int();
+        iMaxScore = nodeResult.child("puzzle").attribute("max-score").as_int();
+        iRemainingHeartNum = nodeResult.child("puzzle").attribute("heart-num").as_int();
+        iRemainingHeartTime = nodeResult.child("puzzle").attribute("heart-remain-time").as_int();
+        vEnabledMaterial.clear();
+        vStoredMaterial.clear();
+        vEnabledMaterial.push_back(nodeResult.child("material").attribute("enabled-a").as_int());
+        vEnabledMaterial.push_back(nodeResult.child("material").attribute("enabled-b").as_int());
+        vEnabledMaterial.push_back(nodeResult.child("material").attribute("enabled-c").as_int());
+        vEnabledMaterial.push_back(nodeResult.child("material").attribute("enabled-d").as_int());
+        vEnabledMaterial.push_back(nodeResult.child("material").attribute("enabled-e").as_int());
+        vEnabledMaterial.push_back(nodeResult.child("material").attribute("enabled-f").as_int());
+        vStoredMaterial.push_back(nodeResult.child("material").attribute("stored-a").as_int());
+        vStoredMaterial.push_back(nodeResult.child("material").attribute("stored-b").as_int());
+        vStoredMaterial.push_back(nodeResult.child("material").attribute("stored-c").as_int());
+        vStoredMaterial.push_back(nodeResult.child("material").attribute("stored-d").as_int());
+        vStoredMaterial.push_back(nodeResult.child("material").attribute("stored-e").as_int());
+        vStoredMaterial.push_back(nodeResult.child("material").attribute("stored-f").as_int());
+
         return true;
     }
     else
@@ -100,7 +123,7 @@ bool Common::XmlParseMoneyRaisePuzzle(char* data, int size, bool hasMoney)
         }
         iAge = nodeResult.child("raise").attribute("age").as_int();
         iType = nodeResult.child("raise").attribute("type").as_int();
-        fWeight = nodeResult.child("raise").attribute("weight").as_float();
+        iWeight = nodeResult.child("raise").attribute("weight").as_float();
         iMaxScore = nodeResult.child("puzzle").attribute("max-score").as_int();
         iRemainingHeartNum = nodeResult.child("puzzle").attribute("heart-num").as_int();
         iRemainingHeartTime = nodeResult.child("puzzle").attribute("heart-remain-time").as_int();

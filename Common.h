@@ -32,10 +32,11 @@ extern int iRemainingHeartNum;
 extern int iRemainingObjectTime;
 extern int iAge;
 extern int iType;
-extern float fWeight;
+extern int iWeight;
 extern int iMaxScore;
 extern std::string sUsername;
-
+extern std::vector<int> vEnabledMaterial;
+extern std::vector<int> vStoredMaterial;
 
 class Common
 {
@@ -47,7 +48,7 @@ public:
 	static int ComputeBoardX(float x);
 	static int ComputeBoardY(float y);
     static bool XmlParseMoneyRaisePuzzle(char* data, int size, bool hasMoney);
-    static bool XmlParsePuzzleDone(char* data, int size);
+    static bool XmlParsePuzzleEnd(char* data, int size);
 };
 
 #endif

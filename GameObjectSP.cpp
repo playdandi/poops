@@ -56,9 +56,7 @@ void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld,
     m_leftdown = NULL;
     m_rightdown = NULL;
     
-    if (lu != rd && ru != ld)
-        return;
-    
+    // special item은 대각선끼리 서로 달라 갈 수 없는 상황이라도 화면에 보여줘야 한다.
     if (type_sp != -1)
     {
         // special piece
@@ -67,6 +65,9 @@ void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld,
                                    CCRectMake(type_sp*DIAMOND_WIDTH, 0, DIAMOND_WIDTH, DIAMOND_HEIGHT));
         m_special->autorelease();
     }
+    
+    if (lu != rd && ru != ld)
+        return;
     
     m_leftup = new CCSprite();
     m_rightdown = new CCSprite();
@@ -122,26 +123,26 @@ void GameObjectSP::SetPositions(int x, int y)
     {
         if (m_leftup != NULL)
         {
-            m_leftup->setPosition(Common::ComputeXY(x, y));
             m_leftup->setAnchorPoint(ccp(0.0f, 0.0f));
             m_leftup->setRotation(-90);
+            m_leftup->setPosition(Common::ComputeXY(x, y));
         }
         if (m_rightup != NULL)
         {
-            m_rightup->setPosition(Common::ComputeXY(x, y));
             m_rightup->setAnchorPoint(ccp(0.0f, 0.0f));
+            m_rightup->setPosition(Common::ComputeXY(x, y));
         }
         if (m_leftdown != NULL)
         {
-            m_leftdown->setPosition(Common::ComputeXY(x, y));
             m_leftdown->setAnchorPoint(ccp(0.0f, 0.0f));
             m_leftdown->setRotation(180);
+            m_leftdown->setPosition(Common::ComputeXY(x, y));
         }
         if (m_rightdown != NULL)
         {
-            m_rightdown->setPosition(Common::ComputeXY(x, y));
             m_rightdown->setAnchorPoint(ccp(0.0f, 0.0f));
             m_rightdown->setRotation(90);
+            m_rightdown->setPosition(Common::ComputeXY(x, y));
         }
         
         if (m_type == SPECIAL && m_special != NULL)

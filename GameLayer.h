@@ -96,8 +96,8 @@ private:
     int iScore;
     int iLevelBonus;
     int iTypeBonus;
-    float fAcquiredWeight;
-    std::vector<int> ingredient;
+    int iAcquiredWeight;
+    std::vector<int> vMaterial;
     
     int iPassedComboTime;
     int iNumOfCombo;

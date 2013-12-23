@@ -8,17 +8,19 @@ using namespace cocos2d;
 static int iScore;
 static int iLevelBonus;
 static int iTypeBonus;
-static float fAcquiredWeight;
-static std::vector<int> ingredient;
+//static float fAcquiredWeight;
+static int iAcquiredWeight;
+static std::vector<int> vMaterial;
 bool isConfirming = false;
 
 
-CCScene* GameEndLayer::scene(int score, int levelBonus, int typeBonus, float weight)
+CCScene* GameEndLayer::scene(int score, int levelBonus, int typeBonus, int weight, std::vector<int> material)//float weight)
 {
     iScore = score;
     iLevelBonus = levelBonus;
     iTypeBonus = typeBonus;
-    fAcquiredWeight = weight;
+    iAcquiredWeight = weight;
+    vMaterial = material;
     
     CCScene* pScene = CCScene::create();
     GameEndLayer* pLayer = GameEndLayer::create();
@@ -135,7 +137,7 @@ bool GameEndLayer::init()
     pPopup->addChild(pAcquiredExp);
     
     char acqExp[12];
-    sprintf(acqExp, "+ %.3lf kg", fAcquiredWeight);
+    sprintf(acqExp, "+ %d.%d kg", iAcquiredWeight/1000, iAcquiredWeight%1000);
     pAcquiredExpCapacity = CCLabelTTF::create(acqExp, "Arial", 40);
     pAcquiredExpCapacity->setColor(ccc3(0, 0, 0));
     pAcquiredExpCapacity->setAnchorPoint(ccp(0, 0));
@@ -171,7 +173,9 @@ bool GameEndLayer::init()
         pIngredientBg2->addChild(piece);
         pPieces.push_back(piece);
         
-        CCLabelTTF* number = CCLabelTTF::create("5", "Arial", 60);
+        char materialNum[3];
+        sprintf(materialNum, "%d", vMaterial[i]);
+        CCLabelTTF* number = CCLabelTTF::create(materialNum, "Arial", 60);
         number->setPosition(ccp(piece->getContentSize().width/2, piece->getContentSize().height/2));
         number->setColor(ccc3(0, 0, 0));
         piece->addChild(number);
@@ -210,17 +214,16 @@ void GameEndLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
     {
         // post request
         CCHttpRequest* req = new CCHttpRequest();
-        req->setUrl("http://14.63.225.203/poops/game/update_score.php");
+        req->setUrl("http://14.63.225.203/poops/game/puzzle_end.php");
         req->setRequestType(CCHttpRequest::kHttpPost);
         req->setResponseCallback(this, callfuncND_selector(GameEndLayer::onHttpRequestCompleted));
         //req->setResponseCallback(this, httpresponse_selector(GameEndLayer::onHttpRequestCompleted));
         // write data
-        char postData[50];
-        sprintf(postData, "user_name=%s&score=%d", sUsername.c_str(), iScore);
+        char postData[1024];
+        sprintf(postData, "user_name=%s&score=%d&weight=%d&material_a=%d&material_b=%d&material_c=%d&material_d=%d&material_e=%d&material_f=%d", sUsername.c_str(), iScore, iAcquiredWeight, vMaterial[0], vMaterial[1], vMaterial[2], vMaterial[3], vMaterial[4], vMaterial[5]);
         req->setRequestData(postData, strlen(postData));
         CCHttpClient::getInstance()->send(req);
         req->release();
-        //CCLog("post send");
     }
     
     isConfirming = false;
@@ -258,7 +261,7 @@ void GameEndLayer::onHttpRequestCompleted(CCNode *sender, void *data)
     
     
     // xml
-    if (Common::XmlParsePuzzleDone(dumpData, buffer->size()))
+    if (Common::XmlParsePuzzleEnd(dumpData, buffer->size()))
     {
         // go to RaisingLayer scene
         CCScene* pNextScene = RaisingLayer::scene();

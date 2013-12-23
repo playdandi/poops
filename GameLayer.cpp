@@ -44,9 +44,9 @@ bool GameLayer::init()
     iScore = 0;
     iLevelBonus = 0;
     iTypeBonus = 0;
-    fAcquiredWeight = 0.0f;
+    iAcquiredWeight = 0;
     for (int i = 0 ; i < TYPE_COUNT ; i++)
-        ingredient.push_back(0);
+        vMaterial.push_back(0);
     
     // score & score label
     scoreLabel = CCLabelTTF::create("0", "Arial", 80);
@@ -84,7 +84,7 @@ bool GameLayer::init()
     addChild(readyTime);
     
     iStartTimer = 4;
-    iRemainingPuzzleTime = 30.0f;
+    iRemainingPuzzleTime = 60.0f;
     this->schedule(schedule_selector(GameLayer::ReadyTimer), 0.5f);
     
     comboLabel = CCLabelTTF::create("test", "Arial", 100);
@@ -288,7 +288,7 @@ void GameLayer::ComboTimer(float f)
 
 void GameLayer::ShowPuzzleResult()
 {
-    CCScene* pScene = GameEndLayer::scene(iScore, iLevelBonus, iTypeBonus, fAcquiredWeight);
+    CCScene* pScene = GameEndLayer::scene(iScore, iLevelBonus, iTypeBonus, iAcquiredWeight, vMaterial);
     
     this->addChild(pScene, 2000, 2000);
     
@@ -297,9 +297,17 @@ void GameLayer::ShowPuzzleResult()
 
 
 
-bool isValidPosition(int x, int y)
+bool isValidPosition(int x, int y, float touchX, float touchY)
 {
-    return 0 <= x && x < COLUMN_COUNT && 0 <= y && y < ROW_COUNT;
+    if (!(0 <= x && x < COLUMN_COUNT && 0 <= y && y < ROW_COUNT))
+        return false;
+    
+    // make a circle
+    int ldX = Common::ComputeX(x);
+    int ldY = Common::ComputeY(y);
+    int dx = abs(touchX - (ldX+OBJECT_WIDTH/2));
+    int dy = abs(touchY - (ldY+OBJECT_HEIGHT/2));
+    return dx*dx + dy*dy <= 47*47; // 47 = radius of the circle.
 }
 
 void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
@@ -337,7 +345,7 @@ void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
 		m_gestureStartBoardX = Common::ComputeBoardX(point.x);
 		m_gestureStartBoardY = Common::ComputeBoardY(point.y);
         
-        if (!isValidPosition(m_gestureStartBoardX, m_gestureStartBoardY))
+        if (!isValidPosition(m_gestureStartBoardX, m_gestureStartBoardY, point.x, point.y))
             return;
 		if (m_pBoard[m_gestureStartBoardX][m_gestureStartBoardY] == NULL)
 			return;
@@ -376,7 +384,7 @@ void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
 		int boardX = Common::ComputeBoardX(point.x);
 		int boardY = Common::ComputeBoardY(point.y);
 
-        if (!isValidPosition(boardX, boardY))
+        if (!isValidPosition(boardX, boardY, point.x, point.y))
             return;
 		if (m_pBoard[boardX][boardY] == NULL)
             return;
@@ -575,6 +583,16 @@ void GameLayer::BombObject()
     //CCLog("BombObject");
     m_bIsBombing = true;
     m_callbackCnt = 0;
+    
+    
+    // 한붓그리기에서 대각선에 걸린 diamond들을 없앤다.
+    for (int i = 0 ; i < connectDia.size() ; i++)
+    {
+        int x = connectDia[i].x;
+        int y = connectDia[i].y;
+        m_pBoardSP[x][y]->RemoveChildren();
+    }
+    connectDia.clear();
 
     // special diamond에 대한 처리
     std::vector<CCPoint> specialBomb;
@@ -616,17 +634,13 @@ void GameLayer::BombObject()
                 hanbut.push_back(specialBomb[i]);
             specialBomb.clear();
         }
+        
+        // 아이템을 없애고(밑에서 한다), CONNECTED diamond로 바꾼다.
+        m_pBoardSP[X][Y]->RemoveChildren();
+        m_pBoardSP[X][Y]->SetType(CONNECTED);
+        m_pBoardSP[X][Y]->SetTypeSP(-1);
     }
     
-    
-    // 한붓그리기에서 대각선에 걸린 diamond들을 없앤다.
-    for (int i = 0 ; i < connectDia.size() ; i++)
-    {
-        int x = connectDia[i].x;
-        int y = connectDia[i].y;
-        m_pBoardSP[x][y]->RemoveChildren();
-    }
-    connectDia.clear();
     
     // bomb action start.
     for (int i = 0 ; i < hanbut.size() ; i++)
@@ -645,7 +659,7 @@ void GameLayer::BombObject()
         }
         
         // weight 랜덤하게 추가 (0.001 ~ 0.009)
-        fAcquiredWeight += 0.0010*(float)(rand()%9+1);
+        iAcquiredWeight += rand()%9+1;
     }
     // score update
     UpdateScore();

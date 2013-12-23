@@ -189,7 +189,7 @@ void RaisingLayer::showObject()
     char ctxWeight[12];
     char ctxType[10];
     sprintf(ctxAge, "%d Age(s)", iAge);
-    sprintf(ctxWeight, "%.3lf Kg", fWeight);
+    sprintf(ctxWeight, "%d.%d Kg", iWeight/1000, iWeight%1000);
     sprintf(ctxType, "%s Type", getTypeName(iType).c_str());
     CCLabelTTF* pAgeLabel = CCLabelTTF::create(ctxAge, "Arial", 35);
     CCLabelTTF* pTypeLabel = CCLabelTTF::create(ctxType, "Arial", 35);

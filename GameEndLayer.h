@@ -12,7 +12,8 @@ class GameEndLayer : public cocos2d::CCLayerColor
 {
 public:
     virtual bool init();
-    static cocos2d::CCScene* scene(int score, int levelBonus, int typeBonus, float weight);
+    //static cocos2d::CCScene* scene(int score, int levelBonus, int typeBonus, float weight);
+    static cocos2d::CCScene*scene(int score, int levelBonus, int typeBonus, int weight, std::vector<int> material);
     CREATE_FUNC(GameEndLayer);
     
     void ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent);
