@@ -332,7 +332,7 @@ void RaisingLayer::onHttpRequestCompleted(CCNode *sender, void *data)
     
     // dump data
     std::vector<char> *buffer = res->getResponseData();
-    char dumpData[buffer->size()+1];
+    char dumpData[BUFFER_SIZE];
     for (unsigned int i = 0 ; i < buffer->size() ; i++)
     {
         dumpData[i] = (*buffer)[i];

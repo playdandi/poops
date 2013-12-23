@@ -23,6 +23,8 @@ USING_NS_CC;
 
 #define LARGEST_MASS_LOWER_BOUND 7
 
+#define BUFFER_SIZE 1024
+
 using namespace cocos2d;
 
 extern int iCash;
