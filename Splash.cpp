@@ -150,7 +150,7 @@ void Splash::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
     if (isStarting && m_pStartBtn->boundingBox().containsPoint(point))
     {
         //CCLog("username = %s", username.c_str());
-        if (sUsername.size() >= 4 & sUsername.size() <= 8)
+        if (sUsername.size() >= 4 && sUsername.size() <= 8)
         {
             m_pLoadLabel = CCLabelTTF::create("Loading...", "Arial", 32);
             m_pLoadLabel->setPosition(ccp(winSize.width/2, 284+48+25));
@@ -196,7 +196,7 @@ void Splash::onHttpRequestCompleted(CCNode *sender, void *data)
     
     // dump data
     std::vector<char> *buffer = res->getResponseData();
-    char dumpData[buffer->size()+1];
+    char dumpData[BUFFER_SIZE];
     for (unsigned int i = 0 ; i < buffer->size() ; i++)
     {
         dumpData[i] = (*buffer)[i];
