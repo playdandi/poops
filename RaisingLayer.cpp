@@ -216,12 +216,12 @@ std::string RaisingLayer::getTypeName(int type)
 {
     switch (type)
     {
-        case 0: return "AA";
-        case 1: return "BB";
-        case 2: return "CC";
-        case 3: return "DD";
-        case 4: return "EE";
-        case 5: return "FF";
+        case 1: return "AA";
+        case 2: return "BB";
+        case 3: return "CC";
+        case 4: return "DD";
+        case 5: return "EE";
+        case 6: return "FF";
     }
     return "NONE";
 }

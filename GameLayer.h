@@ -39,9 +39,15 @@ public:
     void BombObject();
     void BombCallback();
     
+    bool IsNotAppliedToBomb(int x, int y);
+    
+    void StartCrushTime();
+    void EndCrushTime();
+    //void CrushTimer(float f);
+    
     CCTexture2D* GetPuzzlePiece();
     CCTexture2D* GetPuzzleDia();
-    CCTexture2D* GetPuzzleSP();
+    CCTexture2D* GetPuzzleSP(int type_sp);
     
     void UpdateScore();
 	int GetScore();
@@ -77,7 +83,7 @@ protected:
     
     CCTexture2D* pPuzzlePiece;
     CCTexture2D* pPuzzleDia;
-    CCTexture2D* pPuzzleSP;
+    std::vector<CCTexture2D*> pPuzzleSP;
     CCSprite* pBackgroundSprite;
     CCSprite* pRefreshSprite;
     
@@ -87,11 +93,13 @@ protected:
     CCProgressTimer* progressTimer;
     CCLabelTTF* comboLabel;
     
+    CCSprite* crushTimeBackground;
+    
 private:
     bool isFinished;
     
     int iStartTimer;
-    float iRemainingPuzzleTime;
+    int iRemainingPuzzleTime;
     
     int iScore;
     int iLevelBonus;
@@ -103,6 +111,9 @@ private:
     int iNumOfCombo;
     
     int iNumOfPieceOfLargestMass;
+    
+    int iNumOfCrush;
+    bool isCrushing;
 };
 
 #endif

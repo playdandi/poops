@@ -14,7 +14,7 @@ USING_NS_CC;
 
 #define TYPE_COUNT 6
 #define TYPE_DIA_COUNT 3
-#define TYPE_SP_COUNT 1
+#define TYPE_SP_COUNT 3
 
 #define OBJECT_WIDTH 96
 #define OBJECT_HEIGHT 96

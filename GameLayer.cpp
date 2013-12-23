@@ -28,7 +28,10 @@ bool GameLayer::init()
     // puzzle pieces & diamonds && specials
     pPuzzlePiece = CCTextureCache::sharedTextureCache()->addImage("images/all_pieces.png");
     pPuzzleDia = CCTextureCache::sharedTextureCache()->addImage("images/all_diamond_pieces.png");
-    pPuzzleSP = CCTextureCache::sharedTextureCache()->addImage("images/one_piece_sp.png");
+    pPuzzleSP.push_back(CCTextureCache::sharedTextureCache()->addImage("images/one_piece_sp.png"));
+    pPuzzleSP.push_back(CCTextureCache::sharedTextureCache()->addImage("images/dia_item_5sec.png"));
+    pPuzzleSP.push_back(CCTextureCache::sharedTextureCache()->addImage("images/dia_item_1type.png"));
+    pPuzzleSP.push_back(CCTextureCache::sharedTextureCache()->addImage("images/dia_item_crossline.png"));
     
     // background
 	pBackgroundSprite = CCSprite::create("images/background.png");
@@ -52,7 +55,7 @@ bool GameLayer::init()
     scoreLabel = CCLabelTTF::create("0", "Arial", 80);
     scoreLabel->setAnchorPoint(ccp(1.0f, 0.5f));
     scoreLabel->setPosition(ccp(m_winSize.width-20, m_winSize.height-50));
-    addChild(scoreLabel);
+    addChild(scoreLabel, 2);
     
     // puzzle board
 	StartGame();
@@ -69,22 +72,22 @@ bool GameLayer::init()
     progressTimer->setPercentage(100.0f);
     progressTimer->setAnchorPoint(ccp(0.0f, 1.0f));
     progressTimer->setPosition(ccp(0, OBJECT_HEIGHT));
-    addChild(progressTimer);
+    addChild(progressTimer, 2);
     
-    puzzleTime = CCLabelTTF::create("30", "Arial", 80);
+    puzzleTime = CCLabelTTF::create("60", "Arial", 80);
     puzzleTime->setAnchorPoint(ccp(1.0f, 1.0f));
     puzzleTime->setPosition(ccp(m_winSize.width-OBJECT_WIDTH, OBJECT_HEIGHT+20));
     puzzleTime->setColor(ccc3(0, 0, 0));
-    addChild(puzzleTime);
+    addChild(puzzleTime, 2);
     
    	setTouchEnabled(false);
     
     readyTime = CCLabelTTF::create("3", "Arial", 60);
     readyTime->setPosition(ccp(m_winSize.width/2, m_winSize.height+100));
-    addChild(readyTime);
+    addChild(readyTime, 2);
     
     iStartTimer = 4;
-    iRemainingPuzzleTime = 60.0f;
+    iRemainingPuzzleTime = 6000;
     this->schedule(schedule_selector(GameLayer::ReadyTimer), 0.5f);
     
     comboLabel = CCLabelTTF::create("test", "Arial", 100);
@@ -217,6 +220,8 @@ void GameLayer::StartGame()
 	m_bTouchStarted = false;
     m_bIsBombing = false;
     m_bIsCycle = false;
+    
+    isCrushing = false;
 }
 
 
@@ -251,21 +256,22 @@ void GameLayer::ReadyTimer(float f)
 
 void GameLayer::PuzzleTimer(float f)
 {
-    iRemainingPuzzleTime -= 0.10f;
-    //CCLog("puzzle time : %f", iRemainingPuzzleTime);
+    iRemainingPuzzleTime -= 10;
 
-    float round1 = ((int)(iRemainingPuzzleTime * pow(10.0, 1))) / pow(10.0, 1);
+    //float round1 = ((int)(iRemainingPuzzleTime * pow(10.0, 1))) / pow(10.0, 1);
     //CCLog("%f %f", (float)((int)iRemainingPuzzleTime), round1);
     
-    if ((float)((int)iRemainingPuzzleTime) == round1)
+    //if ((float)((int)iRemainingPuzzleTime) == round1)
+    if (iRemainingPuzzleTime % 100 == 0)
     {
         char time[3];
-        sprintf(time, "%d", (int)iRemainingPuzzleTime);
+        sprintf(time, "%d", iRemainingPuzzleTime/100);
         puzzleTime->setString(time);
     }
-    progressTimer->setPercentage(iRemainingPuzzleTime / 60.0f * 100.0);
+    progressTimer->setPercentage(iRemainingPuzzleTime / 6000.0f * 100.0);//iRemainingPuzzleTime / 60.0f * 100.0);
     
-    if (iRemainingPuzzleTime <= 0.0f)
+    //if (iRemainingPuzzleTime <= 0.0f)
+    if (iRemainingPuzzleTime == 0)
     {
         this->unschedule(schedule_selector(GameLayer::PuzzleTimer));
         sound->StopBackgroundSound();
@@ -276,8 +282,11 @@ void GameLayer::PuzzleTimer(float f)
 
 void GameLayer::ComboTimer(float f)
 {
+    if (m_bTouchStarted)
+        return;
+    
     iPassedComboTime += 100;
-    if (iPassedComboTime >= 2000)
+    if (iPassedComboTime >= 1500) // 1.5초 지나면 콤보 해제.
     {
         iPassedComboTime = 0;
         iNumOfCombo = 0;
@@ -513,6 +522,8 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
         
         if (hanbut.size() >= 3)
         {
+            if (!isCrushing)
+            {
             // 3개 이상 한붓그리기 했으면, combo schedule 적용하고, 터뜨려야지!
             iNumOfCombo++;
             sound->playComboSound(iNumOfCombo);
@@ -521,7 +532,17 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
             {
                 this->schedule(schedule_selector(GameLayer::ComboTimer), 0.1f);
             }
-            ShowComboLabel();
+            else if (iNumOfCombo >= 6) // 6th combo = crushCrushCrush~
+            {
+                this->unschedule(schedule_selector(GameLayer::ComboTimer));
+                iNumOfCombo = 0;
+                StartCrushTime();
+            }
+            else
+            {
+                ShowComboLabel();
+            }
+            
             
             // 6개 이상 터뜨리면 랜덤한 위치에 diamond item,
             if (hanbut.size() >= 6)
@@ -540,6 +561,17 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
                     hanbut.size() >= iNumOfPieceOfLargestMass)
             {
                 CCLog("Give hectagon item at random position.");
+            }
+            }
+            
+            else
+            {
+                // crush time 중이면, cnt 1 증가시킨다.
+                iNumOfCrush++;
+                if (iNumOfCrush == 5)
+                {
+                    EndCrushTime();
+                }
             }
             
             BombObject();
@@ -577,6 +609,18 @@ void GameLayer::TouchCallback()
 }
 
 
+bool GameLayer::IsNotAppliedToBomb(int x, int y)
+{
+    // 한붓그리기된 조각에 이미 포함되어 있으면 추가하지 마라.
+    for (int j = 0 ; j < hanbut.size() ; j++)
+    {
+        if (x == hanbut[j].x && y == hanbut[j].y)
+        {
+            return false;
+        }
+    }
+    return true;
+}
 
 void GameLayer::BombObject()
 {
@@ -595,8 +639,8 @@ void GameLayer::BombObject()
     connectDia.clear();
 
     // special diamond에 대한 처리
-    std::vector<CCPoint> specialBomb;
-    specialBomb.clear();
+    //std::vector<CCPoint> specialBomb;
+    //specialBomb.clear();
     for (int i = 0 ; i < special.size() ; i++)
     {
         int X = (int)special[i].x;
@@ -614,31 +658,72 @@ void GameLayer::BombObject()
                     if (x < 0 || x >= COLUMN_COUNT || y < 0 || y >= ROW_COUNT)
                         continue;
                     
-                    bool flag = true;
-                    // 한붓그리기된 조각에 4*4 범위 내의 조각이 이미 포함되어 있으면 추가하지 마라.
-                    for (int j = 0 ; j < hanbut.size() ; j++)
-                    {
-                        if (x == hanbut[j].x && y == hanbut[j].y)
-                        {
-                            flag = false;
-                            break;
-                        }
-                    }
-                    if (flag)
-                        specialBomb.push_back(ccp(x, y));
+                    if (IsNotAppliedToBomb(x, y))
+                        hanbut.push_back(ccp(x, y));
+                        //specialBomb.push_back(ccp(x, y));
                 }
             }
-            
+            /*
             // special bomb 조각들을 hanbut에 추가해서 같이 터뜨린다.
             for (int i = 0 ; i < specialBomb.size() ; i++)
                 hanbut.push_back(specialBomb[i]);
             specialBomb.clear();
+             */
         }
         
-        // 아이템을 없애고(밑에서 한다), CONNECTED diamond로 바꾼다.
-        m_pBoardSP[X][Y]->RemoveChildren();
-        m_pBoardSP[X][Y]->SetType(CONNECTED);
-        m_pBoardSP[X][Y]->SetTypeSP(-1);
+        else if (type_sp == 1)
+        {
+            // 남은시간 5초 추가.
+            iRemainingPuzzleTime += 500;
+            
+            char time[3];
+            sprintf(time, "%d", iRemainingPuzzleTime/100);
+            puzzleTime->setString(time);
+        }
+        
+        else if (type_sp == 2)
+        {
+            // 랜덤하게 한가지 type piece 모두 bomb.
+            int oneType = rand()%TYPE_COUNT;
+            for (int x = 0 ; x < COLUMN_COUNT ; x++)
+            {
+                for (int y = 0 ; y < ROW_COUNT ; y++)
+                {
+                    if (m_pBoard[x][y]->GetType() == oneType && IsNotAppliedToBomb(x, y))
+                    {
+                        hanbut.push_back(ccp(x, y));
+                    }
+                }
+            }
+        }
+        
+        else if (type_sp == 3)
+        {
+            // 십자가 bomb.
+            std::vector<CCPoint> temp;
+            for (int x = X-1, y = Y ; x >= 0 && y < ROW_COUNT ; x--, y++) // left up
+                temp.push_back(ccp(x, y));
+            for (int x = X-1, y = Y-1 ; x >= 0 && y >= 0 ; x--, y--) // left down
+                temp.push_back(ccp(x, y));
+            for (int x = X, y = Y ; x < COLUMN_COUNT && y < ROW_COUNT ; x++, y++) // right up
+                temp.push_back(ccp(x, y));
+            for (int x = X , y = Y-1 ; x < COLUMN_COUNT && y >= 0 ; x++, y--) // right down
+                temp.push_back(ccp(x, y));
+            
+            for (int i = 0 ; i < temp.size() ; i++)
+            {
+                if (IsNotAppliedToBomb(temp[i].x, temp[i].y))
+                    hanbut.push_back(temp[i]);
+            }
+        }
+        
+        if (!isCrushing)
+        {
+            // 아이템을 없애고(밑에서 한다), CONNECTED diamond로 바꾼다.
+            m_pBoardSP[X][Y]->RemoveChildren();
+            m_pBoardSP[X][Y]->SetType(CONNECTED);
+            m_pBoardSP[X][Y]->SetTypeSP(-1);
+        }
     }
     
     
@@ -768,7 +853,14 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
                     int type_sp = -1;
                     if (m_pBoardSP[x][y]->GetType() == SPECIAL)
                     {
-                        type_sp = m_pBoardSP[x][y]->GetTypeSP();
+                        if (isCrushing)
+                        {
+                            // crush time중에 item을 터뜨리면 폭탄으로 대체한다.
+                            type_sp = 0;
+                            m_pBoardSP[x][y]->SetTypeSP(0);
+                        }
+                        else
+                            type_sp = m_pBoardSP[x][y]->GetTypeSP();
                     }
                     
                     m_pBoardSP[x][y]->RemoveChildren();
@@ -804,9 +896,9 @@ CCTexture2D* GameLayer::GetPuzzleDia()
     return pPuzzleDia;
 }
 
-CCTexture2D* GameLayer::GetPuzzleSP()
+CCTexture2D* GameLayer::GetPuzzleSP(int type_sp)
 {
-    return pPuzzleSP;
+    return pPuzzleSP[type_sp];
 }
 
 
@@ -876,3 +968,88 @@ void GameLayer::FindLargestMassRecur(int* num, int cnt, int* check, int x, int y
         FindLargestMassRecur(num, cnt+1, check, x+1, y+1, type);
 }
 
+
+// crush(fever) time 시작하는 함수
+void GameLayer::StartCrushTime()
+{
+    crushTimeBackground = CCSprite::create("images/progressbar.png",
+                                           CCRectMake(0, 0, m_winSize.width, m_winSize.height));
+    crushTimeBackground->setAnchorPoint(ccp(0, 0));
+    crushTimeBackground->setPosition(ccp(0, 0));
+    addChild(crushTimeBackground, zBackground);
+    
+    CCFiniteTimeAction* seq = CCSequence::create(
+                                                 CCTintTo::create(0.1f, 255, 255, 255),
+                                                 CCTintTo::create(0.1f, 0, 0, 0),
+                                                 NULL);
+    CCAction* rep = CCRepeatForever::create((CCActionInterval*)seq);
+    crushTimeBackground->runAction(rep);
+    
+    isCrushing = true;
+    iNumOfCrush = 0;
+    
+    // item이 아닌 diamond를 죄다 8각bomb diamond로 바꾼다.
+    for (int x = 1 ; x < COLUMN_COUNT ; x++)
+    {
+        for (int y = 1 ; y < ROW_COUNT ; y++)
+        {
+            if (m_pBoardSP[x][y]->GetType() != SPECIAL)
+            {
+                CCLog("%d %d", x, y);
+                m_pBoardSP[x][y]->RemoveChildren();
+                
+                m_pBoardSP[x][y]->SetType(SPECIAL);
+                m_pBoardSP[x][y]->SetTypeSP(0);
+                m_pBoardSP[x][y]->CreateSpriteDia(this,
+                                                  m_pBoard[x-1][y]->GetType(),
+                                                  m_pBoard[x][y]->GetType(),
+                                                  m_pBoard[x-1][y-1]->GetType(),
+                                                  m_pBoard[x][y-1]->GetType(),
+                                                  0); // 폭탄 type으로 변경.
+                m_pBoardSP[x][y]->SetPositions(x, y);
+                m_pBoardSP[x][y]->AddChildren(this, zGameObjectSP);
+            }
+        }
+    }
+}
+
+// crush time 끝내는 함수
+void GameLayer::EndCrushTime()
+{
+    iNumOfCrush = -1;
+    isCrushing = false;
+    removeChild(crushTimeBackground, true);
+    
+    // 다시 item diamond를 제외하고, CONNECTED/BLOCKED로 바꾼다.
+    for (int x = 1 ; x < COLUMN_COUNT ; x++)
+    {
+        for (int y = 1 ; y < ROW_COUNT ; y++)
+        {
+            // 이 때는 무조건 special 이므로, bomb일 때만 없애면 된다.
+            if (m_pBoardSP[x][y]->GetTypeSP() == 0)
+            {
+                m_pBoardSP[x][y]->RemoveChildren();
+                
+                int value = rand()%100;
+                int type = (value < 33) ? BLOCKED : CONNECTED;
+                m_pBoardSP[x][y]->SetType(type);
+                m_pBoardSP[x][y]->SetTypeSP(-1);
+                m_pBoardSP[x][y]->CreateSpriteDia(this,
+                                                  m_pBoard[x-1][y]->GetType(),
+                                                  m_pBoard[x][y]->GetType(),
+                                                  m_pBoard[x-1][y-1]->GetType(),
+                                                  m_pBoard[x][y-1]->GetType(),
+                                                  -1); // 폭탄 type으로 변경.
+                m_pBoardSP[x][y]->SetPositions(x, y);
+                m_pBoardSP[x][y]->AddChildren(this, zGameObjectSP);
+            }
+        }
+    }
+}
+/*
+void GameLayer::CrushTimer(float f)
+{
+    crushTime += 100;
+    if (crushTime \\)
+}
+*/

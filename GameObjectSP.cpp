@@ -25,7 +25,7 @@ GameObjectSP* GameObjectSP::Create(GameLayer* gameLayer, int lu, int ru, int ld,
     
     if (type == SPECIAL) // special
     {
-        int type_sp = 0; //int type_sp = rand()%TYPE_SP_COUNT;
+        int type_sp = rand()%TYPE_SP_COUNT+1;
         pGameObjectSP->SetTypeSP(type_sp);
         pGameObjectSP->CreateSpriteDia(gameLayer, lu, ru, ld, rd, type_sp);
         //pGameObjectSP->CreateSpriteSP(type_sp, gameLayer);
@@ -61,8 +61,8 @@ void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld,
     {
         // special piece
         m_special = new CCSprite();
-        m_special->initWithTexture(gameLayer->GetPuzzleSP(),
-                                   CCRectMake(type_sp*DIAMOND_WIDTH, 0, DIAMOND_WIDTH, DIAMOND_HEIGHT));
+        m_special->initWithTexture(gameLayer->GetPuzzleSP(type_sp),
+                                   CCRectMake(0, 0, DIAMOND_WIDTH, DIAMOND_HEIGHT));
         m_special->autorelease();
     }
     
