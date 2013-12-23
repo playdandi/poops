@@ -60,7 +60,7 @@ protected:
 
 	bool m_bTouchStarted;
     bool m_bIsBombing;
-    //bool m_bTouchEnded;
+    bool m_bIsCycle;
 
 	int m_gestureStartBoardX;
 	int m_gestureStartBoardY;

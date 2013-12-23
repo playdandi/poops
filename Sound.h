@@ -11,6 +11,7 @@ public:
     void playBombSound();
     void playBackgroundSound();
     void StopBackgroundSound();
+    void playComboSound(int combo);
 };
 
 #endif /* defined(__poops__Sound__) */

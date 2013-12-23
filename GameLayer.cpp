@@ -216,6 +216,7 @@ void GameLayer::StartGame()
     
 	m_bTouchStarted = false;
     m_bIsBombing = false;
+    m_bIsCycle = false;
 }
 
 
@@ -364,7 +365,7 @@ void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
 void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
 {
     // CCLog("touch moved");
-    if (m_bIsBombing || isFinished)
+    if (m_bIsBombing || isFinished || m_bIsCycle)
         return;
     
 	if (m_bTouchStarted)
@@ -388,7 +389,13 @@ void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
               (abs(beforeX-boardX) == 1 && abs(beforeY-boardY) == 1)) &&
             m_pBoard[beforeX][beforeY]->GetType() == m_pBoard[boardX][boardY]->GetType())
         {
-            if (AlreadySelected(boardX, boardY))
+            // cycle이 되는 경우
+            if (boardX == hanbut[0].x && boardY == hanbut[0].y && hanbut.size() >= 6)
+            {
+                m_bIsCycle = true;
+            }
+            // 사이클이 아닌 상황에서 이미 선택된 piece일 경우
+            else if (AlreadySelected(boardX, boardY))
                 return;
             
             if (abs(beforeX-boardX) + abs(beforeY-boardY) == 2)
@@ -397,7 +404,10 @@ void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
                 int X = (beforeX > boardX) ? beforeX : boardX;
                 int Y = (beforeY > boardY) ? beforeY : boardY;
                 if (m_pBoardSP[X][Y]->GetType() == BLOCKED)
+                {
+                    m_bIsCycle = false;
                     return;
+                }
                 
                 CCSprite* conn = CCSprite::create("images/connect_diagonal.png");
                 if (beforeX > boardX && beforeY < boardY) // 대각선 left-up 연결됨
@@ -497,6 +507,7 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
         {
             // 3개 이상 한붓그리기 했으면, combo schedule 적용하고, 터뜨려야지!
             iNumOfCombo++;
+            sound->playComboSound(iNumOfCombo);
             iPassedComboTime = 0;
             if (iNumOfCombo == 1) // 1st combo
             {
@@ -507,7 +518,14 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
             // 6개 이상 터뜨리면 랜덤한 위치에 diamond item,
             if (hanbut.size() >= 6)
             {
-                CCLog("Give diamond item at random position.");
+                if (m_bIsCycle)
+                {
+                    CCLog("Give Cycle Item!!");
+                }
+                else
+                {
+                    CCLog("Give diamond item at random position.");
+                }
             }
             // 가장 큰덩어리 다 터뜨리면(7개 이상) 8각형 item 주는 부분.
             if (iNumOfPieceOfLargestMass >= LARGEST_MASS_LOWER_BOUND &&
@@ -567,16 +585,17 @@ void GameLayer::BombObject()
         int Y = (int)special[i].y;
         int type_sp = m_pBoardSP[X][Y]->GetTypeSP();
         
-        if (type_sp == 0) // 4*4 bomb
+        if (type_sp == 0) // 8각형(12piece) bomb
         {
-            int sx = (X-2 >= 0) ? X-2 : 0;
-            int sy = (Y-2 >= 0) ? Y-2 : 0;
-            int ex = (X+1 < COLUMN_COUNT) ? X+1 : COLUMN_COUNT-1;
-            int ey = (Y+1 < ROW_COUNT) ? Y+1 : ROW_COUNT-1;
-            for (int x = sx ; x <= ex ; x++)
+            for (int x = X-2 ; x <= X+1 ; x++)
             {
-                for (int y = sy ; y <= ey ; y++)
+                for (int y = Y-2 ; y <= Y+1 ; y++)
                 {
+                    if ((x == X-2 || x == X+1) && (y == Y-2 || y == Y+1))
+                        continue;
+                    if (x < 0 || x >= COLUMN_COUNT || y < 0 || y >= ROW_COUNT)
+                        continue;
+                    
                     bool flag = true;
                     // 한붓그리기된 조각에 4*4 범위 내의 조각이 이미 포함되어 있으면 추가하지 마라.
                     for (int j = 0 ; j < hanbut.size() ; j++)
@@ -756,6 +775,7 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
         
         m_bTouchStarted = false;
         m_bIsBombing = false;
+        m_bIsCycle = false;
 	}
 }
 
@@ -778,7 +798,11 @@ CCTexture2D* GameLayer::GetPuzzleSP()
 
 void GameLayer::UpdateScore()
 {
-    iScore += 10*hanbut.size();
+    // 3개 = 기본 10점 * 3 = 30점
+    // 4개 = 기본 11점 * 4 = 44점
+    // 5개 = 기본 12점 * 5 = 60점
+    // ...
+    iScore += hanbut.size() * (10+hanbut.size()-3);
     char score[8];
     sprintf(score, "%d", iScore);
     scoreLabel->setString(score);
@@ -805,7 +829,7 @@ void GameLayer::FindLargestMass()
             {
                 num = 0;
                 FindLargestMassRecur(&num, 0, check, x, y, m_pBoard[x][y]->GetType());
-                iNumOfPieceOfLargestMass = std::max(iNumOfPieceOfLargestMass, num);
+                iNumOfPieceOfLargestMass = (std::max)(iNumOfPieceOfLargestMass, num);
             }
         }
     }
