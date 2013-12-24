@@ -19,7 +19,12 @@ GameObjectSP* GameObjectSP::Create(GameLayer* gameLayer, int lu, int ru, int ld,
     pGameObjectSP->SetGameLayer(gameLayer);
     
     int r = rand()%100;
-    int type = (r < 40) ? BLOCKED : ((r < 80) ? CONNECTED : SPECIAL);
+    int type = (r < 60) ? BLOCKED : CONNECTED; // 연결 diamond 확률은 40%
+    if (type == CONNECTED)
+    {
+        int temp = rand()%100;
+        type = (temp < 30) ? SPECIAL : CONNECTED; // item 확률은 연결 diamond중에서 30% (전체의 12%)
+    }
 
     pGameObjectSP->SetType(type);
     
@@ -28,7 +33,6 @@ GameObjectSP* GameObjectSP::Create(GameLayer* gameLayer, int lu, int ru, int ld,
         int type_sp = rand()%TYPE_SP_COUNT+1;
         pGameObjectSP->SetTypeSP(type_sp);
         pGameObjectSP->CreateSpriteDia(gameLayer, lu, ru, ld, rd, type_sp);
-        //pGameObjectSP->CreateSpriteSP(type_sp, gameLayer);
     }
     else if (type == CONNECTED) // connected
     {
@@ -38,15 +42,6 @@ GameObjectSP* GameObjectSP::Create(GameLayer* gameLayer, int lu, int ru, int ld,
 	return pGameObjectSP;
 }
 
-/*
-void GameObjectSP::CreateSpriteSP(int type_sp, GameLayer* gameLayer)
-{
-    m_special = new CCSprite();
-    m_special->initWithTexture(gameLayer->GetPuzzleSP(),
-                               CCRectMake(type_sp*DIAMOND_WIDTH, 0, DIAMOND_WIDTH, DIAMOND_HEIGHT));
-    m_special->autorelease();
-}
-*/
 
 void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld, int rd, int type_sp)
 {
@@ -77,37 +72,37 @@ void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld,
     if (lu == rd && ru == ld)
     {
         m_leftup->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(lu*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(lu*(DIAMOND_HEIGHT/2)+lu*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_rightdown->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(rd*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(rd*(DIAMOND_HEIGHT/2)+rd*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_rightup->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(ru*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(ru*(DIAMOND_HEIGHT/2)+ru*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_leftdown->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(ld*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(ld*(DIAMOND_HEIGHT/2)+ld*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
     }
     
     else if (lu == rd)
     {
         m_leftup->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(lu*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(lu*(DIAMOND_HEIGHT/2)+lu*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_rightdown->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(lu*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(lu*(DIAMOND_HEIGHT/2)+lu*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_rightup->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(lu*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(lu*(DIAMOND_HEIGHT/2)+lu*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_leftdown->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(lu*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(lu*(DIAMOND_HEIGHT/2)+lu*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
     }
     
     else if (ru == ld)
     {
         m_leftup->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(ru*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(ru*(DIAMOND_HEIGHT/2)+ru*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_rightdown->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(ru*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(ru*(DIAMOND_HEIGHT/2)+ru*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_rightup->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(ru*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(ru*(DIAMOND_HEIGHT/2)+ru*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
         m_leftdown->initWithTexture(gameLayer->GetPuzzleDia(),
-                            CCRectMake(ru*(DIAMOND_HEIGHT/2), 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
+                            CCRectMake(ru*(DIAMOND_HEIGHT/2)+ru*2+1, 0, DIAMOND_WIDTH/2, DIAMOND_HEIGHT/2));
     }
     
     m_leftup->autorelease();
@@ -118,7 +113,6 @@ void GameObjectSP::CreateSpriteDia(GameLayer* gameLayer, int lu, int ru, int ld,
 
 void GameObjectSP::SetPositions(int x, int y)
 {
-    //else if (m_type == CONNECTED)
     if (m_type != BLOCKED)
     {
         if (m_leftup != NULL)
@@ -154,7 +148,6 @@ void GameObjectSP::SetPositions(int x, int y)
 
 void GameObjectSP::AddChildren(GameLayer* gameLayer, int zOrder)
 {
-    //else if (m_type == CONNECTED)
     if (m_type != BLOCKED)
     {
         if (m_leftup != NULL)
@@ -175,7 +168,6 @@ void GameObjectSP::AddChildren(GameLayer* gameLayer, int zOrder)
 
 void GameObjectSP::RemoveChildren()
 {
-    //else if (m_type == CONNECTED)
     if (m_type != BLOCKED)
     {
         if (m_leftup != NULL)

@@ -32,18 +32,18 @@ public:
 	void ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent);
 	void ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent);
 	void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);
-    inline bool AlreadySelected(int x, int y);
+    bool IsPossibleToSelect(int x, int y);
     void ShowComboLabel();
-    void TouchCallback();
+    void FailedHanbutCallback();
     
     void BombObject();
     void BombCallback();
+    void ApplyItem(int diaX, int diaY);
     
     bool IsNotAppliedToBomb(int x, int y);
     
     void StartCrushTime();
     void EndCrushTime();
-    //void CrushTimer(float f);
     
     CCTexture2D* GetPuzzlePiece();
     CCTexture2D* GetPuzzleDia();
@@ -75,17 +75,17 @@ protected:
 	int m_numOfFallingObjects;
 	Sound* sound;
     
-    std::vector<CCPoint> hanbut;
-    std::vector<CCPoint> connectDia;
-    std::vector<CCSprite*> connect;
-    std::vector<CCPoint> special;
+    std::vector<CCPoint> octaPiece;
+    std::vector<CCPoint> diaPiece;
+    std::vector<CCSprite*> connLines;
     int m_callbackCnt;
     
     CCTexture2D* pPuzzlePiece;
     CCTexture2D* pPuzzleDia;
     std::vector<CCTexture2D*> pPuzzleSP;
+    CCTexture2D* pPuzzleConnLineDiagonal;
+    CCTexture2D* pPuzzleConnLineStraight;
     CCSprite* pBackgroundSprite;
-    CCSprite* pRefreshSprite;
     
     CCLabelTTF* readyTime;
     CCLabelTTF* puzzleTime;
@@ -114,6 +114,10 @@ private:
     
     int iNumOfCrush;
     bool isCrushing;
+    
+    bool isOctaItemGiven;
+    bool isDiaExItemGiven;
+    bool isDiaItemGiven;
 };
 
 #endif

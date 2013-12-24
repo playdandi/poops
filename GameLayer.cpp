@@ -26,13 +26,16 @@ bool GameLayer::init()
     sound = new Sound();
     sound->PreLoadSound();
     
-    // puzzle pieces & diamonds && specials
+    // puzzle pieces & diamonds && specials & connectLine
     pPuzzlePiece = CCTextureCache::sharedTextureCache()->addImage("images/all_pieces.png");
     pPuzzleDia = CCTextureCache::sharedTextureCache()->addImage("images/all_diamond_pieces.png");
     pPuzzleSP.push_back(CCTextureCache::sharedTextureCache()->addImage("images/one_piece_sp.png"));
     pPuzzleSP.push_back(CCTextureCache::sharedTextureCache()->addImage("images/dia_item_5sec.png"));
     pPuzzleSP.push_back(CCTextureCache::sharedTextureCache()->addImage("images/dia_item_1type.png"));
     pPuzzleSP.push_back(CCTextureCache::sharedTextureCache()->addImage("images/dia_item_crossline.png"));
+    pPuzzleConnLineDiagonal = CCTextureCache::sharedTextureCache()->addImage("images/connect_diagonal.png");
+    pPuzzleConnLineStraight = CCTextureCache::sharedTextureCache()->addImage("images/connect.png");
+
     
     // background
 	pBackgroundSprite = CCSprite::create("images/background.png");
@@ -136,12 +139,6 @@ void GameLayer::doNotification(CCObject* obj)
 */
 
 
-
-void GameLayer::SetOpacities(int alpha)
-{
-    //pBackgroundSprite->setOpacity(alpha);
-}
-
 CCScene* GameLayer::scene()
 {
 	CCScene* pScene = CCScene::create();
@@ -229,25 +226,20 @@ void GameLayer::StartGame()
 void GameLayer::ReadyTimer(float f)
 {
     iStartTimer--;
-    char number[2];
     
+    char number[2];
     sprintf(number, "%d", iStartTimer);
     readyTime->setString(number);
 
     if (iStartTimer == 3)
     {
-//        readyTime->setString("3");
+        // 3->2->1->0 숫자를 위에서 아래로 당겨와 보여준다.
         CCActionInterval* action = CCMoveBy::create(0.1f, ccp(0, -100-OBJECT_HEIGHT/2));
         readyTime->runAction(action);
     }
-//    else if (iStartTimer > 0)
-//    {
-//        if (iStartTimer == 2) readyTime->setString("2");
-//        else readyTime->setString("1");
-//    }
-    else if (iStartTimer == 0) // 0 sec
+    else if (iStartTimer == 0)
     {
-//        readyTime->setString("0");
+        // puzzle을 시작하도록 만든다.
         CCFiniteTimeAction* action =
             CCSpawn::create(CCScaleTo::create(0.15f, 1.5f), CCFadeOut::create(0.15f), NULL);
         readyTime->runAction(action);
@@ -284,17 +276,35 @@ void GameLayer::PuzzleTimer(float f)
 
 void GameLayer::ComboTimer(float f)
 {
-    if (m_bTouchStarted)
+    if (m_bIsBombing)
         return;
     
     iPassedComboTime += 100;
-    if (iPassedComboTime >= 1500) // 1.5초 지나면 콤보 해제.
-    {
-        iPassedComboTime = 0;
-        iNumOfCombo = 0;
-        this->unschedule(schedule_selector(GameLayer::ComboTimer));
-    }
     
+    if (isCrushing)
+    {
+        // crush time 중인데 3초 지나면 crush time 해제.
+        if (iPassedComboTime >= 3000)
+            EndCrushTime();
+    }
+    else
+    {
+        if (iPassedComboTime >= 2000) // 2초 지나면 콤보 해제.
+        {
+            iPassedComboTime = 0;
+            iNumOfCombo = 0;
+            this->unschedule(schedule_selector(GameLayer::ComboTimer));
+        }
+    }
+}
+
+void GameLayer::ShowComboLabel()
+{
+    char n[10];
+    sprintf(n, "%d Combo!", iNumOfCombo);
+    comboLabel->setString(n);
+    CCFiniteTimeAction* action = CCSequence::create(CCFadeIn::create(0.15f), CCFadeOut::create(0.15f), NULL);
+    comboLabel->runAction(action);
 }
 
 void GameLayer::ShowPuzzleResult()
@@ -329,55 +339,36 @@ void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
     
     CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
     CCPoint point = pTouch->getLocation();
-
-    /*
-    // refresh button
-    if (pRefreshSprite->boundingBox().containsPoint(point))
-    {
-        for (int x = 0 ; x < COLUMN_COUNT ; x++)
-        {
-            for (int y = 0 ; y < ROW_COUNT ; y++)
-            {
-                removeChild(m_pBoard[x][y], true);
-                m_pBoard[x][y] = NULL;
-                if (x > 0 && y > 0)
-                {
-                    m_pBoardSP[x][y]->RemoveChildren();
-                    m_pBoardSP[x][y] = NULL;
-                }
-            }
-        }
-        StartGame();
-    }
-    */
     
 	if (!m_bTouchStarted)
 	{
 		m_gestureStartBoardX = Common::ComputeBoardX(point.x);
 		m_gestureStartBoardY = Common::ComputeBoardY(point.y);
         
+        // 이상한 위치 or piece의 인식 범위 밖이면 시작하지 않는다.
         if (!isValidPosition(m_gestureStartBoardX, m_gestureStartBoardY, point.x, point.y))
             return;
 		if (m_pBoard[m_gestureStartBoardX][m_gestureStartBoardY] == NULL)
 			return;
         
-        // 벡터 초기화
-        hanbut.clear();
-        hanbut.push_back(ccp(m_gestureStartBoardX, m_gestureStartBoardY));
-        connectDia.clear();
-        connect.clear();
-        special.clear();
+        m_bTouchStarted = true;
+        sound->playTouchSound();
         
+        // 벡터 초기화
+        octaPiece.clear();
+        diaPiece.clear();
+        connLines.clear();
+        
+        // 8각형 piece를 터뜨릴 목록에 추가
+        octaPiece.push_back(ccp(m_gestureStartBoardX, m_gestureStartBoardY));
+        
+        // 0.9배 축소 action
         m_pBoard[m_gestureStartBoardX][m_gestureStartBoardY]->setAnchorPoint(ccp(0.5f, 0.5f));
         m_pBoard[m_gestureStartBoardX][m_gestureStartBoardY]->setPosition(
 		ccp(Common::ComputeX(m_gestureStartBoardX)+OBJECT_WIDTH/2, Common::ComputeY(m_gestureStartBoardY)+OBJECT_HEIGHT/2));
-        
         CCActionInterval* action = CCScaleTo::create(0.05f, 0.9f);
         m_pBoard[m_gestureStartBoardX][m_gestureStartBoardY]->runAction(action);
-
-		m_bTouchStarted = true;
-        sound->playTouchSound();
-	}
+    }
 }
 
 
@@ -395,90 +386,85 @@ void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
 		int boardX = Common::ComputeBoardX(point.x);
 		int boardY = Common::ComputeBoardY(point.y);
 
+        // 이상한 위치 or piece의 인식 범위 밖이면 시작하지 않는다.
         if (!isValidPosition(boardX, boardY, point.x, point.y))
             return;
 		if (m_pBoard[boardX][boardY] == NULL)
             return;
         
-        int beforeX = hanbut[hanbut.size()-1].x;
-        int beforeY = hanbut[hanbut.size()-1].y;
+        int beforeX = octaPiece[octaPiece.size()-1].x;
+        int beforeY = octaPiece[octaPiece.size()-1].y;
         
-        // 이전 조각과 인접하며 같은 type일 경우, 한붓그리기 대상에 추가한다.
-        if ( (abs(beforeX-boardX) + abs(beforeY-boardY) == 1 ||
-              (abs(beforeX-boardX) == 1 && abs(beforeY-boardY) == 1)) &&
-            m_pBoard[beforeX][beforeY]->GetType() == m_pBoard[boardX][boardY]->GetType())
+        // 이전 조각과 같은 type이며,
+        // 1) 가로 혹은 세로로 연결되었거나,
+        // 2) connected diamond를 통해 대각선을 연결되었다면
+        // 한붓그리기 대상에 추가되는지 알아보도록 한다.
+        if (m_pBoard[beforeX][beforeY]->GetType() == m_pBoard[boardX][boardY]->GetType() &&
+            ( abs(beforeX-boardX) + abs(beforeY-boardY) == 1 ||
+              (abs(beforeX-boardX) == 1 && abs(beforeY-boardY) == 1 &&
+               m_pBoardSP[(std::max)(beforeX, boardX)][(std::max)(beforeY, boardY)]->GetType() != BLOCKED)))
         {
-            // cycle이 되는 경우
-            if (boardX == hanbut[0].x && boardY == hanbut[0].y && hanbut.size() >= 6)
-            {
-                m_bIsCycle = true;
-            }
-            // 사이클이 아닌 상황에서 이미 선택된 piece일 경우
-            else if (AlreadySelected(boardX, boardY))
+            // 사이클이 아닌 상황에서 이미 선택된 piece일 경우 취소.
+            if (!IsPossibleToSelect(boardX, boardY))
                 return;
             
+            // 대각선으로 연결을 시도한 경우
             if (abs(beforeX-boardX) + abs(beforeY-boardY) == 2)
             {
-                // diamond가 대각선 진행 불가 type이면 못 가게 한다.
-                int X = (beforeX > boardX) ? beforeX : boardX;
-                int Y = (beforeY > boardY) ? beforeY : boardY;
-                if (m_pBoardSP[X][Y]->GetType() == BLOCKED)
-                {
-                    m_bIsCycle = false;
-                    return;
-                }
+                int diaX = (beforeX > boardX) ? beforeX : boardX;
+                int diaY = (beforeY > boardY) ? beforeY : boardY;
                 
-                CCSprite* conn = CCSprite::create("images/connect_diagonal.png");
-                if (beforeX > boardX && beforeY < boardY) // 대각선 left-up 연결됨
+                // connect line sprite (diagonal) 화면에 추가
+                CCSprite* conn = new CCSprite();
+                conn->initWithTexture(pPuzzleConnLineDiagonal, CCRectMake(0, 0, 192, 192));
+                if ((beforeX < boardX && beforeY < boardY) || (beforeX > boardX && beforeY > boardY))
                 {
-                }
-                else if (beforeX < boardX && beforeY < boardY) // right-up
-                {
+                    // 그림상, right-up이나 left-down방향이면 90도 틀도록 한다.
                     conn->setRotation(90);
                 }
-                else if (beforeX > boardX && beforeY > boardY) // left-down
-                {
-                    conn->setRotation(90);
-                }
-                else // right-down
-                {
-                }
-
-                conn->setPosition(Common::ComputeXY(X, Y));
+                conn->setPosition(Common::ComputeXY(diaX, diaY));
                 addChild(conn, zPieceConn);
-                connect.push_back(conn);
+                // 나중에 지울 수 있도록 vector에 추가
+                connLines.push_back(conn);
                 
-                if (m_pBoardSP[X][Y]->GetType() == CONNECTED)
-                    connectDia.push_back(ccp(X, Y));
-                
-                // 대각선의 diamond type이 special이면 vector에 추가.
-                if (m_pBoardSP[X][Y]->GetType() == SPECIAL)
-                    special.push_back(ccp(X, Y));
+                // 터뜨릴 목록에 지금 대각선으로 지나치는 diamond 좌표 추가
+                diaPiece.push_back(ccp(diaX, diaY));
             }
-            else if (abs(beforeX-boardX) == 1) // 가로로 연결됨
+            
+            // 가로로 연결 시도한 경우
+            else if (abs(beforeX-boardX) == 1)
             {
-                CCSprite* conn = CCSprite::create("images/connect.png");
+                // connect line sprite (straight) 화면에 추가
+                CCSprite* conn = new CCSprite();
+                conn->initWithTexture(pPuzzleConnLineStraight, CCRectMake(0, 0, 192, 96));
                 int X = (beforeX > boardX) ? beforeX : boardX;
                 conn->setPosition(ccp(Common::ComputeX(X), Common::ComputeY(beforeY)+OBJECT_HEIGHT/2));
                 addChild(conn, zPieceConn);
-                connect.push_back(conn);
+                // 나중에 지울 수 있도록 vector에 추가
+                connLines.push_back(conn);
             }
-            else // 세로로 연결됨
+            
+            // 세로로 연결 시도한 경우
+            else
             {
-                CCSprite* conn = CCSprite::create("images/connect.png");
+                // connect line sprite (straight) 화면에 추가
+                CCSprite* conn = new CCSprite();
+                conn->initWithTexture(pPuzzleConnLineStraight, CCRectMake(0, 0, 192, 96));
                 int Y = (beforeY > boardY) ? beforeY : boardY;
                 conn->setRotation(90);
                 conn->setPosition(ccp(Common::ComputeX(beforeX)+OBJECT_HEIGHT/2, Common::ComputeY(Y)));
                 addChild(conn, zPieceConn);
-                connect.push_back(conn);
+                // 나중에 지울 수 있도록 vector에 추가
+                connLines.push_back(conn);
             }
             
-            hanbut.push_back(ccp(boardX, boardY));
+            // 8각형 piece도 터뜨릴 목록에 추가
+            octaPiece.push_back(ccp(boardX, boardY));
             
+            // 0.9배 축소 action
             m_pBoard[boardX][boardY]->setAnchorPoint(ccp(0.5f, 0.5f));
             m_pBoard[boardX][boardY]->setPosition(
                 ccp(Common::ComputeX(boardX)+OBJECT_WIDTH/2, Common::ComputeY(boardY)+OBJECT_HEIGHT/2));
-            
             CCActionInterval* action = CCScaleTo::create(0.05f, 0.9f);
             m_pBoard[boardX][boardY]->runAction(action);
             
@@ -487,25 +473,25 @@ void GameLayer::ccTouchesMoved(CCSet* pTouches, CCEvent* pEvent)
 	}
 }
 
-inline bool GameLayer::AlreadySelected(int x, int y)
+bool GameLayer::IsPossibleToSelect(int x, int y)
 {
-    for (int i = 0 ; i < hanbut.size() ; i++)
+    // cycle이 되는 상황이라면 true
+    if (x == octaPiece[0].x && y == octaPiece[0].y && octaPiece.size() >= 6)
     {
-        if (hanbut[i].x == x && hanbut[i].y == y)
-            return true;
+        m_bIsCycle = true;
+        return true;
     }
-    return false;
+    
+    // cycle아닌데 이미 선택된 것이라면 false
+    for (int i = 0 ; i < octaPiece.size() ; i++)
+    {
+        if (octaPiece[i].x == x && octaPiece[i].y == y)
+            return false;
+    }
+    
+    return true;
 }
 
-
-void GameLayer::ShowComboLabel()
-{
-    char n[10];
-    sprintf(n, "%d Combo!", iNumOfCombo);
-    comboLabel->setString(n);
-    CCFiniteTimeAction* action = CCSequence::create(CCFadeIn::create(0.15f), CCFadeOut::create(0.15f), NULL);
-    comboLabel->runAction(action);
-}
 
 void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
 {
@@ -514,80 +500,92 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
     
     if (m_bTouchStarted)
     {
-        // 연결 그림들 제거한다.
-        for (int i = 0 ; i < connect.size() ; i++)
-        {
-            removeChild(connect[i], true);
-        }
-        connect.clear();
-    
+        isOctaItemGiven = false;
+        isDiaItemGiven = false;
+        isDiaExItemGiven = false;
         
-        if (hanbut.size() >= 3)
+        // connect lines 그림들을 제거한다
+        for (int i = 0 ; i < connLines.size() ; i++)
         {
+            removeChild(connLines[i], true);
+        }
+        connLines.clear();
+        
+    
+        // 3개 이상 한붓그리기가 되었다면, 콤보 처리와 함께 bomb를 시작한다.
+        if (octaPiece.size() >= 3)
+        {
+            // crush time 도중이 아니라면,
+            // 콤보 수 증가, 콤보 sound play, 콤보타임 초기화, 콤보수에 따른 콤보scheduler handling 등을 행한다.
             if (!isCrushing)
             {
-            // 3개 이상 한붓그리기 했으면, combo schedule 적용하고, 터뜨려야지!
-            iNumOfCombo++;
-            sound->playComboSound(iNumOfCombo);
-            iPassedComboTime = 0;
-            if (iNumOfCombo == 1) // 1st combo
-            {
-                this->schedule(schedule_selector(GameLayer::ComboTimer), 0.1f);
-            }
-            else if (iNumOfCombo >= 6) // 6th combo = crushCrushCrush~
-            {
-                this->unschedule(schedule_selector(GameLayer::ComboTimer));
-                iNumOfCombo = 0;
-                StartCrushTime();
-            }
-            else
-            {
-                ShowComboLabel();
-            }
-            
-            
-            // 6개 이상 터뜨리면 랜덤한 위치에 diamond item,
-            if (hanbut.size() >= 6)
-            {
-                if (m_bIsCycle)
+                iNumOfCombo++;
+                sound->playComboSound(iNumOfCombo);
+                iPassedComboTime = 0;
+                
+                if (iNumOfCombo == 1) // 1st combo
                 {
-                    CCLog("Give Cycle Item!!");
+                    this->schedule(schedule_selector(GameLayer::ComboTimer), 0.1f);
+                }
+                else if (iNumOfCombo >= 6) // 6th combo = crushCrushCrush~
+                {
+                    iNumOfCombo = 0;
+                    // crush time에 대한 환경 세팅(화면 등)을 하고, crush mode로 들어간다.
+                    StartCrushTime();
                 }
                 else
                 {
-                    CCLog("Give diamond item at random position.");
+                    ShowComboLabel(); // 2~5콤보일 때 label을 화면 중앙에 살짝 보여준다.
+                }
+            
+                /* ITEM을 줘야 하는 한붓그리기인지 체크한다 */
+                if (octaPiece.size() >= 6)
+                {
+                    // 6개 이상 터뜨리면서 사이클이면 랜덤한 위치에 '질 좋은' diamond item을 준다.
+                    if (m_bIsCycle)
+                    {
+                        CCLog("Give CYCLE Item!!");
+                        isDiaExItemGiven = true;
+                    }
+                    // 6개 이상 터뜨리면 랜덤한 위치에 diamond item을 준다.
+                    else
+                    {
+                        isDiaItemGiven = true;
+                        CCLog("Give DIAMOND item at random position.");
+                    }
+                }
+                // 가장 큰덩어리 다 터뜨리면(7개 이상) 랜덤한 위치에 8각형 item을 준다.
+                if (iNumOfPieceOfLargestMass >= LARGEST_MASS_LOWER_BOUND &&
+                    octaPiece.size() >= iNumOfPieceOfLargestMass)
+                {
+                    isOctaItemGiven = true;
+                    CCLog("Give OCTAGON item at random position.");
                 }
             }
-            // 가장 큰덩어리 다 터뜨리면(7개 이상) 8각형 item 주는 부분.
-            if (iNumOfPieceOfLargestMass >= LARGEST_MASS_LOWER_BOUND &&
-                    hanbut.size() >= iNumOfPieceOfLargestMass)
-            {
-                CCLog("Give hectagon item at random position.");
-            }
-            }
             
+            // crush time 중이면, crush 횟수를 증가시킨다.
+            // 5회 지나면 crush time을 끝낸다 (실제로 끝내는 행위는 falling이 끝났을 때)
             else
             {
-                // crush time 중이면, cnt 1 증가시킨다.
                 iNumOfCrush++;
-                if (iNumOfCrush == 5)
-                {
-                    EndCrushTime();
-                }
+                iPassedComboTime = 0;
             }
             
+            // 8각형 piece들 터뜨리는 행위 시작
             BombObject();
         }
+        
+        // 3개 미만으로 한붓그리기가 되었다면, 원상태로 복구시킨다.
         else
         {
-            for (int i = 0 ; i < hanbut.size() ; i++)
+            for (int i = 0 ; i < octaPiece.size() ; i++)
             {
-                int X = (int)hanbut[i].x;
-                int Y = (int)hanbut[i].y;
-                // back to original scale
+                int X = (int)octaPiece[i].x;
+                int Y = (int)octaPiece[i].y;
+                // 원래 크기로 확대 action
                 CCFiniteTimeAction* action =
                     CCSequence::create(CCScaleTo::create(0.05f, 1.0f),
-                        CCCallFunc::create(this, callfunc_selector(GameLayer::TouchCallback)), NULL);
+                        CCCallFunc::create(this, callfunc_selector(GameLayer::FailedHanbutCallback)), NULL);
                 m_pBoard[X][Y]->runAction(action);
             }
             
@@ -596,27 +594,26 @@ void GameLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
     }
 }
 
-void GameLayer::TouchCallback()
+void GameLayer::FailedHanbutCallback()
 {
-    for (int i = 0 ; i < hanbut.size() ; i++)
+    for (int i = 0 ; i < octaPiece.size() ; i++)
     {
-        int X = (int)hanbut[i].x;
-        int Y = (int)hanbut[i].y;
+        int X = (int)octaPiece[i].x;
+        int Y = (int)octaPiece[i].y;
         m_pBoard[X][Y]->setAnchorPoint(ccp(0.0f, 0.0f));
-        m_pBoard[X][Y]->setPosition(
-            ccp(Common::ComputeX(X), Common::ComputeY(Y)));
+        m_pBoard[X][Y]->setPosition(ccp(Common::ComputeX(X), Common::ComputeY(Y)));
     }
-    hanbut.clear();
-    connectDia.clear();
+    octaPiece.clear();
+    diaPiece.clear();
 }
 
 
 bool GameLayer::IsNotAppliedToBomb(int x, int y)
 {
     // 한붓그리기된 조각에 이미 포함되어 있으면 추가하지 마라.
-    for (int j = 0 ; j < hanbut.size() ; j++)
+    for (int j = 0 ; j < octaPiece.size() ; j++)
     {
-        if (x == hanbut[j].x && y == hanbut[j].y)
+        if (x == octaPiece[j].x && y == octaPiece[j].y)
         {
             return false;
         }
@@ -630,111 +627,44 @@ void GameLayer::BombObject()
     m_bIsBombing = true;
     m_callbackCnt = 0;
     
-    
-    // 한붓그리기에서 대각선에 걸린 diamond들을 없앤다.
-    for (int i = 0 ; i < connectDia.size() ; i++)
+    // 한붓그리기 상의 대각선(diamond)을 검사한다
+    //for (int i = 0 ; i < special.size() ; i++)
+    for (int i = 0 ; i < diaPiece.size() ; i++)
     {
-        int x = connectDia[i].x;
-        int y = connectDia[i].y;
-        m_pBoardSP[x][y]->RemoveChildren();
-    }
-    connectDia.clear();
-
-    // special diamond에 대한 처리
-    //std::vector<CCPoint> specialBomb;
-    //specialBomb.clear();
-    for (int i = 0 ; i < special.size() ; i++)
-    {
-        int X = (int)special[i].x;
-        int Y = (int)special[i].y;
-        int type_sp = m_pBoardSP[X][Y]->GetTypeSP();
+        int X = (int)diaPiece[i].x;
+        int Y = (int)diaPiece[i].y;
         
-        if (type_sp == 0) // 8각형(12piece) bomb
+        // item이라면 그에 맞는 행위를 적용시킨다.
+        if (m_pBoardSP[X][Y]->GetType() == SPECIAL)
         {
-            for (int x = X-2 ; x <= X+1 ; x++)
+            ApplyItem(X, Y);
+        
+            if (!isCrushing)
             {
-                for (int y = Y-2 ; y <= Y+1 ; y++)
-                {
-                    if ((x == X-2 || x == X+1) && (y == Y-2 || y == Y+1))
-                        continue;
-                    if (x < 0 || x >= COLUMN_COUNT || y < 0 || y >= ROW_COUNT)
-                        continue;
-                    
-                    if (IsNotAppliedToBomb(x, y))
-                        hanbut.push_back(ccp(x, y));
-                        //specialBomb.push_back(ccp(x, y));
-                }
+                // 일반 모드라면, 아이템 화면에서 없애고, CONNECTED diamond로 바꾼다.
+                m_pBoardSP[X][Y]->SetType(CONNECTED);
+                m_pBoardSP[X][Y]->SetTypeSP(-1);
             }
-            /*
-            // special bomb 조각들을 hanbut에 추가해서 같이 터뜨린다.
-            for (int i = 0 ; i < specialBomb.size() ; i++)
-                hanbut.push_back(specialBomb[i]);
-            specialBomb.clear();
-             */
-        }
-        
-        else if (type_sp == 1)
-        {
-            // 남은시간 5초 추가.
-            iRemainingPuzzleTime += 500;
-            
-            char time[3];
-            sprintf(time, "%d", iRemainingPuzzleTime/100);
-            puzzleTime->setString(time);
-        }
-        
-        else if (type_sp == 2)
-        {
-            // 랜덤하게 한가지 type piece 모두 bomb.
-            int oneType = rand()%TYPE_COUNT;
-            for (int x = 0 ; x < COLUMN_COUNT ; x++)
+            else
             {
-                for (int y = 0 ; y < ROW_COUNT ; y++)
-                {
-                    if (m_pBoard[x][y]->GetType() == oneType && IsNotAppliedToBomb(x, y))
-                    {
-                        hanbut.push_back(ccp(x, y));
-                    }
-                }
+                // crush time중에는 아이템을 화면에서 없애고, 'bomb' item diamond로 바꾼다.
+                m_pBoardSP[X][Y]->SetTypeSP(0);
             }
         }
         
-        else if (type_sp == 3)
-        {
-            // 십자가 bomb.
-            std::vector<CCPoint> temp;
-            for (int x = X-1, y = Y ; x >= 0 && y < ROW_COUNT ; x--, y++) // left up
-                temp.push_back(ccp(x, y));
-            for (int x = X-1, y = Y-1 ; x >= 0 && y >= 0 ; x--, y--) // left down
-                temp.push_back(ccp(x, y));
-            for (int x = X, y = Y ; x < COLUMN_COUNT && y < ROW_COUNT ; x++, y++) // right up
-                temp.push_back(ccp(x, y));
-            for (int x = X , y = Y-1 ; x < COLUMN_COUNT && y >= 0 ; x++, y--) // right down
-                temp.push_back(ccp(x, y));
-            
-            for (int i = 0 ; i < temp.size() ; i++)
-            {
-                if (IsNotAppliedToBomb(temp[i].x, temp[i].y))
-                    hanbut.push_back(temp[i]);
-            }
-        }
-        
-        if (!isCrushing)
-        {
-            // 아이템을 없애고(밑에서 한다), CONNECTED diamond로 바꾼다.
-            m_pBoardSP[X][Y]->RemoveChildren();
-            m_pBoardSP[X][Y]->SetType(CONNECTED);
-            m_pBoardSP[X][Y]->SetTypeSP(-1);
-        }
+        // 그냥 connected든지 item이든지 어쩄든 화면에서는 지운다.
+        m_pBoardSP[X][Y]->RemoveChildren();
     }
     
     
-    // bomb action start.
-    for (int i = 0 ; i < hanbut.size() ; i++)
+    // 8각형 piece들을 터뜨린다.
+    // 이 때의 octaPiece에는 위에서 item으로 인해 추가된 piece들도 포함되어 있다.
+    for (int i = 0 ; i < octaPiece.size() ; i++)
     {
-        int boardX = (int)hanbut[i].x;
-        int boardY = (int)hanbut[i].y;
+        int boardX = (int)octaPiece[i].x;
+        int boardY = (int)octaPiece[i].y;
         
+        // 터뜨리는 action
         GameObject* pGameObject = m_pBoard[boardX][boardY];
         if (pGameObject)
 		{
@@ -748,29 +678,104 @@ void GameLayer::BombObject()
         // weight 랜덤하게 추가 (0.001 ~ 0.009)
         iAcquiredWeight += rand()%9+1;
     }
+    
     // score update
     UpdateScore();
     
     sound->playBombSound();
 }
-                                                            
+
+void GameLayer:: ApplyItem(int diaX, int diaY)
+{
+    int type_sp = m_pBoardSP[diaX][diaY]->GetTypeSP();
+    
+    // 8각형(12piece) 형태 bomb
+    if (type_sp == 0)
+    {
+        for (int x = diaX-2 ; x <= diaX+1 ; x++)
+        {
+            for (int y = diaY-2 ; y <= diaY+1 ; y++)
+            {
+                if ((x == diaX-2 || x == diaX+1) && (y == diaY-2 || y == diaY+1))
+                    continue;
+                if (x < 0 || x >= COLUMN_COUNT || y < 0 || y >= ROW_COUNT)
+                    continue;
+                
+                if (IsNotAppliedToBomb(x, y))
+                {
+                    octaPiece.push_back(ccp(x, y));
+                }
+            }
+        }
+    }
+    
+    // 남은시간 5초 추가.
+    else if (type_sp == 1)
+    {
+        iRemainingPuzzleTime += 500;
+        
+        char time[3];
+        sprintf(time, "%d", iRemainingPuzzleTime/100);
+        puzzleTime->setString(time);
+    }
+    
+    // 랜덤하게 한가지 type piece 모두 bomb.
+    else if (type_sp == 2)
+    {
+        int oneType = rand()%TYPE_COUNT;
+        for (int x = 0 ; x < COLUMN_COUNT ; x++)
+        {
+            for (int y = 0 ; y < ROW_COUNT ; y++)
+            {
+                if (m_pBoard[x][y]->GetType() == oneType && IsNotAppliedToBomb(x, y))
+                {
+                    octaPiece.push_back(ccp(x, y));
+                }
+            }
+        }
+    }
+    
+    // 십자가 bomb
+    else if (type_sp == 3)
+    {
+        std::vector<CCPoint> temp;
+        for (int x = diaX-1, y = diaY ; x >= 0 && y < ROW_COUNT ; x--, y++) // left up
+            temp.push_back(ccp(x, y));
+        for (int x = diaX-1, y = diaY-1 ; x >= 0 && y >= 0 ; x--, y--) // left down
+            temp.push_back(ccp(x, y));
+        for (int x = diaX, y = diaY ; x < COLUMN_COUNT && y < ROW_COUNT ; x++, y++) // right up
+            temp.push_back(ccp(x, y));
+        for (int x = diaX , y = diaY-1 ; x < COLUMN_COUNT && y >= 0 ; x++, y--) // right down
+            temp.push_back(ccp(x, y));
+        
+        for (int i = 0 ; i < temp.size() ; i++)
+        {
+            if (IsNotAppliedToBomb(temp[i].x, temp[i].y))
+            {
+                octaPiece.push_back(temp[i]);
+            }
+        }
+        temp.clear();
+    }
+}
+
 void GameLayer::BombCallback()
 {
     m_callbackCnt++;
     
-    if (m_callbackCnt == hanbut.size())
+    if (m_callbackCnt == octaPiece.size())
     {
-        // bomb action이 끝나면 한붓그리기 상의 모든 조각을 제거한다.
-        for (int i = 0 ; i < hanbut.size() ; i++)
+        // bomb action이 모두 끝나면 한붓그리기 상의 모든 조각을 제거한다.
+        for (int i = 0 ; i < octaPiece.size() ; i++)
         {
-            GameObject* pGameObject = m_pBoard[(int)hanbut[i].x][(int)hanbut[i].y];
+            GameObject* pGameObject = m_pBoard[(int)octaPiece[i].x][(int)octaPiece[i].y];
             // remove from layer, and free memories.
 			removeChild(pGameObject, true);
-   			m_pBoard[(int)hanbut[i].x][(int)hanbut[i].y] = NULL;
+   			m_pBoard[(int)octaPiece[i].x][(int)octaPiece[i].y] = NULL;
         }
-        hanbut.clear();
+        octaPiece.clear();
         
-        
+        // 그리고 새로운 8각형 piece들의 drop을 시작한다.
         ProcessFalling();
     }
 }
@@ -845,25 +850,16 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
     
 	if (m_numOfFallingObjects == 0)
 	{
+        // drop이 모두 끝나면, diamond들을 다시 검사해서 적절히 바꿔준다.
 		for (int x = 1 ; x < COLUMN_COUNT ; x++)
         {
             for (int y = 1 ; y < ROW_COUNT ; y++)
             {
-                //if (m_pBoardSP[x][y]->GetType() == CONNECTED)
                 if (m_pBoardSP[x][y]->GetType() != BLOCKED)
                 {
                     int type_sp = -1;
                     if (m_pBoardSP[x][y]->GetType() == SPECIAL)
-                    {
-                        if (isCrushing)
-                        {
-                            // crush time중에 item을 터뜨리면 폭탄으로 대체한다.
-                            type_sp = 0;
-                            m_pBoardSP[x][y]->SetTypeSP(0);
-                        }
-                        else
-                            type_sp = m_pBoardSP[x][y]->GetTypeSP();
-                    }
+                        type_sp = m_pBoardSP[x][y]->GetTypeSP();
                     
                     m_pBoardSP[x][y]->RemoveChildren();
                     m_pBoardSP[x][y]->CreateSpriteDia(this,
@@ -877,6 +873,10 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
                 }
             }
         }
+        
+        // crush time이 끝나면 환경 세팅을 원래대로 돌린다.
+        if (iNumOfCrush >= 5)
+            EndCrushTime();
         
         // 가장 큰 덩어리를 구성하는 piece 개수 구한다.
         FindLargestMass();
@@ -910,7 +910,7 @@ void GameLayer::UpdateScore()
     // 4개 = 기본 11점 * 4 = 44점
     // 5개 = 기본 12점 * 5 = 60점
     // ...
-    iScore += hanbut.size() * (10+hanbut.size()-3);
+    iScore += octaPiece.size() * (10+octaPiece.size()-3);
     char score[8];
     sprintf(score, "%d", iScore);
     scoreLabel->setString(score);
@@ -971,24 +971,26 @@ void GameLayer::FindLargestMassRecur(int* num, int cnt, int* check, int x, int y
 }
 
 
-// crush(fever) time 시작하는 함수
+// crush time 시작하는 함수
 void GameLayer::StartCrushTime()
 {
+    isCrushing = true;
+    iNumOfCrush = 0;
+
+    // 배경 추가
     crushTimeBackground = CCSprite::create("images/progressbar.png",
                                            CCRectMake(0, 0, m_winSize.width, m_winSize.height));
     crushTimeBackground->setAnchorPoint(ccp(0, 0));
     crushTimeBackground->setPosition(ccp(0, 0));
     addChild(crushTimeBackground, zBackground);
     
+    // 추가한 배경을 깜빡이게 (흰색<->검은색) 만드는 action
     CCFiniteTimeAction* seq = CCSequence::create(
                                                  CCTintTo::create(0.1f, 255, 255, 255),
                                                  CCTintTo::create(0.1f, 0, 0, 0),
                                                  NULL);
     CCAction* rep = CCRepeatForever::create((CCActionInterval*)seq);
     crushTimeBackground->runAction(rep);
-    
-    isCrushing = true;
-    iNumOfCrush = 0;
     
     // item이 아닌 diamond를 죄다 8각bomb diamond로 바꾼다.
     for (int x = 1 ; x < COLUMN_COUNT ; x++)
@@ -997,7 +999,6 @@ void GameLayer::StartCrushTime()
         {
             if (m_pBoardSP[x][y]->GetType() != SPECIAL)
             {
-                CCLog("%d %d", x, y);
                 m_pBoardSP[x][y]->RemoveChildren();
                 
                 m_pBoardSP[x][y]->SetType(SPECIAL);
@@ -1048,10 +1049,4 @@ void GameLayer::EndCrushTime()
         }
     }
 }
-/*
-void GameLayer::CrushTimer(float f)
-{
-    crushTime += 100;
-    if (crushTime \\)
-}
-*/
+
