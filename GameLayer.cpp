@@ -23,6 +23,7 @@ bool GameLayer::init()
     this->setKeypadEnabled(true);
     
     // sound
+    sound = new Sound();
     sound->PreLoadSound();
     
     // puzzle pieces & diamonds && specials
@@ -228,21 +229,25 @@ void GameLayer::StartGame()
 void GameLayer::ReadyTimer(float f)
 {
     iStartTimer--;
+    char number[2];
+    
+    sprintf(number, "%d", iStartTimer);
+    readyTime->setString(number);
 
     if (iStartTimer == 3)
     {
-        readyTime->setString("3");
+//        readyTime->setString("3");
         CCActionInterval* action = CCMoveBy::create(0.1f, ccp(0, -100-OBJECT_HEIGHT/2));
         readyTime->runAction(action);
     }
-    else if (iStartTimer > 0)
+//    else if (iStartTimer > 0)
+//    {
+//        if (iStartTimer == 2) readyTime->setString("2");
+//        else readyTime->setString("1");
+//    }
+    else if (iStartTimer == 0) // 0 sec
     {
-        if (iStartTimer == 2) readyTime->setString("2");
-        else readyTime->setString("1");
-    }
-    else // 0 sec
-    {
-        readyTime->setString("0");
+//        readyTime->setString("0");
         CCFiniteTimeAction* action =
             CCSpawn::create(CCScaleTo::create(0.15f, 1.5f), CCFadeOut::create(0.15f), NULL);
         readyTime->runAction(action);
@@ -258,21 +263,18 @@ void GameLayer::PuzzleTimer(float f)
 {
     iRemainingPuzzleTime -= 10;
 
-    //float round1 = ((int)(iRemainingPuzzleTime * pow(10.0, 1))) / pow(10.0, 1);
-    //CCLog("%f %f", (float)((int)iRemainingPuzzleTime), round1);
-    
-    //if ((float)((int)iRemainingPuzzleTime) == round1)
     if (iRemainingPuzzleTime % 100 == 0)
     {
+        // 초가 정수일 때 (60, 59, 58, ...) 숫자를 바꿔준다.
         char time[3];
         sprintf(time, "%d", iRemainingPuzzleTime/100);
         puzzleTime->setString(time);
     }
-    progressTimer->setPercentage(iRemainingPuzzleTime / 6000.0f * 100.0);//iRemainingPuzzleTime / 60.0f * 100.0);
+    progressTimer->setPercentage(iRemainingPuzzleTime / 6000.0f * 100.0);
     
-    //if (iRemainingPuzzleTime <= 0.0f)
     if (iRemainingPuzzleTime == 0)
     {
+        // 퍼즐을 끝내고 popup 형태로 결과 화면을 띄운다.
         this->unschedule(schedule_selector(GameLayer::PuzzleTimer));
         sound->StopBackgroundSound();
         isFinished = true;

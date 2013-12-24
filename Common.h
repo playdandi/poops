@@ -2,6 +2,7 @@
 #define PuzzleGame_Common
 
 #include "cocos2d.h"
+#include "CCPlatformConfig.h"
 
 USING_NS_CC;
 
