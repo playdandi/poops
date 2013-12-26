@@ -335,12 +335,28 @@ bool isValidPosition(int x, int y, float touchX, float touchY)
     if (!(0 <= x && x < COLUMN_COUNT && 0 <= y && y < ROW_COUNT))
         return false;
     
+    /*
     // make a circle
     int ldX = Common::ComputeX(x);
     int ldY = Common::ComputeY(y);
     int dx = abs(touchX - (ldX+OBJECT_WIDTH/2));
     int dy = abs(touchY - (ldY+OBJECT_HEIGHT/2));
     return dx*dx + dy*dy <= 47*47; // 47 = radius of the circle.
+     */
+    
+    int range = 29;
+    int ldX = Common::ComputeX(x);
+    int ldY = Common::ComputeY(y);
+    if (abs(touchX-ldX) + abs(touchY-ldY) <= range)
+        return false;
+    if (abs(touchX-ldX) + abs(touchY-(ldY+OBJECT_HEIGHT)) <= range)
+        return false;
+    if (abs(touchX-(ldX+OBJECT_WIDTH)) + abs(touchY-ldY) <= range)
+        return false;
+    if (abs(touchX-(ldX+OBJECT_WIDTH)) + abs(touchY-(ldY+OBJECT_HEIGHT)) <= range)
+        return false;
+    
+    return true;
 }
 
 void GameLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
@@ -822,11 +838,13 @@ void GameLayer::CreateDiaItem(bool isValuable)
         int x = rand()%(COLUMN_COUNT-1)+1;
         int y = rand()%(ROW_COUNT-1)+1;
 
-        if ((m_pBoardSP[x][y]->GetType() == CONNECTED && diaTypeCnt[CONNECTED] > 0) ||
-            (m_pBoardSP[x][y]->GetType() == BLOCKED))
+        // CONNECTED 다이아가 존재한다면 그곳에 아이템을 만들고, 아니라면 BLOCKED 부분에 만든다.
+        // 또한 6개 이상을 터뜨림과 동시에 CRUSH MODE가 시작되는 경우가 있는데, 이때는 폭탄인 부분이면 그곳에 아이템 만든다.
+        if ( (!isCrushing && ((m_pBoardSP[x][y]->GetType() == CONNECTED && diaTypeCnt[CONNECTED] > 0) ||
+            (m_pBoardSP[x][y]->GetType() == BLOCKED))) ||
+            (isCrushing && m_pBoardSP[x][y]->GetTypeSP() == 0))
         {
             CCLog("%d , %d", x, y);
-            // CONNECTED 다이아가 존재한다면 그곳에 아이템을 만들고, 아니라면 BLOCKED 부분에 만든다.
             m_pBoardSP[x][y]->RemoveChildren();
 
             int type_sp = rand()%TYPE_DIA_COUNT + 1;
