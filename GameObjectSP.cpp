@@ -166,8 +166,8 @@ void GameObjectSP::AddChildren(GameLayer* gameLayer, int zOrder)
     }
 }
 
-void GameObjectSP::RemoveChildren()
-{
+void GameObjectSP::RemoveChildren(bool isItemRemoved)
+{    
     if (m_type != BLOCKED)
     {
         if (m_leftup != NULL)
@@ -183,7 +183,7 @@ void GameObjectSP::RemoveChildren()
         m_leftdown = NULL;
         m_rightdown = NULL;
         
-        if (m_type == SPECIAL && m_special != NULL)
+        if (isItemRemoved && m_type == SPECIAL && m_special != NULL)
         {
             GetGameLayer()->removeChild(m_special, true);
             m_special = NULL;

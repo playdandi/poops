@@ -78,6 +78,8 @@ protected:
     std::vector<CCPoint> octaPiece;
     std::vector<CCPoint> diaPiece;
     std::vector<CCSprite*> connLines;
+    std::vector<CCPoint> failedCrushedDiaPiece;
+    std::vector<CCPoint> replaceToBlockedDia;
     int m_callbackCnt;
     
     CCTexture2D* pPuzzlePiece;

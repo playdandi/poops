@@ -10,7 +10,7 @@ public:
     void PreLoadSound();
     void playTouchSound();
     void playBombSound();
-    void playBackgroundSound();
+    void playBackgroundSound(bool isCrushing);
     void StopBackgroundSound();
     void playComboSound(int combo);
 

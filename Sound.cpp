@@ -23,6 +23,7 @@ void Sound::PreLoadSound()
     if (ext == "wav")
     {
         SimpleAudioEngine::sharedEngine()->preloadBackgroundMusic("sounds/background.mp3");
+        SimpleAudioEngine::sharedEngine()->preloadBackgroundMusic("sounds/background_crush.mp3");
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/explosion.mp3");
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/click.wav");
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/combo_double.wav");
@@ -60,12 +61,23 @@ void Sound::playBombSound()
         SimpleAudioEngine::sharedEngine()->playEffect("sounds/explosion.ogg");
 }
 
-void Sound::playBackgroundSound()
+void Sound::playBackgroundSound(bool isCrushing)
 {
     if (ext == "wav")
-        SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sounds/background.mp3", true);
+    {
+        if (isCrushing)
+            SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sounds/background_crush.mp3", true);
+        else
+            SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sounds/background.mp3", true);
+    }
     else
-        SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sounds/background.ogg", true);
+    {
+        if (isCrushing)
+            SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sounds/background_crush.mp3", true);
+        else
+            SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sounds/background.ogg", true);
+    }
+    
 }
 
 void Sound::StopBackgroundSound()

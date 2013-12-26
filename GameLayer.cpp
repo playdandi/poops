@@ -43,7 +43,7 @@ bool GameLayer::init()
 	pBackgroundSprite->setAnchorPoint(ccp(0.0f, 0.0f));
 	addChild(pBackgroundSprite, zBackground);
     
-    sound->playBackgroundSound();
+    sound->playBackgroundSound(false);
 
 	m_winSize = CCDirector::sharedDirector()->getWinSize();
 
@@ -285,11 +285,17 @@ void GameLayer::ComboTimer(float f)
     {
         // crush time 중인데 3초 지나면 crush time 해제.
         if (iPassedComboTime >= 3000)
+        {
+            iPassedComboTime = 0;
+            iNumOfCombo = 0;
+            this->unschedule(schedule_selector(GameLayer::ComboTimer));
             EndCrushTime();
+        }
     }
     else
     {
-        if (iPassedComboTime >= 2000) // 2초 지나면 콤보 해제.
+        // 일반 모드에서 2초 지나면 콤보 해제.
+        if (iPassedComboTime >= 2000)
         {
             iPassedComboTime = 0;
             iNumOfCombo = 0;
@@ -628,11 +634,27 @@ void GameLayer::BombObject()
     m_callbackCnt = 0;
     
     // 한붓그리기 상의 대각선(diamond)을 검사한다
-    //for (int i = 0 ; i < special.size() ; i++)
     for (int i = 0 ; i < diaPiece.size() ; i++)
     {
         int X = (int)diaPiece[i].x;
         int Y = (int)diaPiece[i].y;
+        
+        // 그냥 connected든지 item이든지 어쩄든 화면에서는 지운다.
+        bool replaceToBlocked = false;
+        for (int i = 0 ; i < replaceToBlockedDia.size() ; i++)
+        {
+            int x = replaceToBlockedDia[i].x;
+            int y = replaceToBlockedDia[i].y;
+            if (x == X && y == Y)
+            {
+                m_pBoardSP[x][y]->SetType(CONNECTED);
+                replaceToBlocked = true;
+                break;
+            }
+        }
+        m_pBoardSP[X][Y]->RemoveChildren();
+        if (replaceToBlocked)
+            m_pBoardSP[X][Y]->SetType(BLOCKED);
         
         // item이라면 그에 맞는 행위를 적용시킨다.
         if (m_pBoardSP[X][Y]->GetType() == SPECIAL)
@@ -651,21 +673,28 @@ void GameLayer::BombObject()
                 m_pBoardSP[X][Y]->SetTypeSP(0);
             }
         }
-        
-        // 그냥 connected든지 item이든지 어쩄든 화면에서는 지운다.
-        m_pBoardSP[X][Y]->RemoveChildren();
     }
-    
+    diaPiece.clear();
     
     // 8각형 piece들을 터뜨린다.
     // 이 때의 octaPiece에는 위에서 item으로 인해 추가된 piece들도 포함되어 있다.
     for (int i = 0 ; i < octaPiece.size() ; i++)
     {
-        int boardX = (int)octaPiece[i].x;
-        int boardY = (int)octaPiece[i].y;
+        int X = (int)octaPiece[i].x;
+        int Y = (int)octaPiece[i].y;
+        
+        // 8각형 주변의 diamond중에 터지지 않은 diamond를 마저 지운다.)
+        if (X > 0 && Y > 0 && X < COLUMN_COUNT && Y < ROW_COUNT)
+            m_pBoardSP[X][Y]->RemoveChildren(false);
+        if (X > 0 && Y+1 > 0 && X < COLUMN_COUNT && Y+1 < ROW_COUNT)
+            m_pBoardSP[X][Y+1]->RemoveChildren(false);
+        if (X+1 > 0 && Y > 0 && X+1 < COLUMN_COUNT && Y < ROW_COUNT)
+            m_pBoardSP[X+1][Y]->RemoveChildren(false);
+        if (X+1 > 0 && Y+1 > 0 && X+1 < COLUMN_COUNT && Y+1 < ROW_COUNT)
+            m_pBoardSP[X+1][Y+1]->RemoveChildren(false);
         
         // 터뜨리는 action
-        GameObject* pGameObject = m_pBoard[boardX][boardY];
+        GameObject* pGameObject = m_pBoard[X][Y];
         if (pGameObject)
 		{
             CCFiniteTimeAction* action = CCSequence::create(
@@ -974,6 +1003,8 @@ void GameLayer::FindLargestMassRecur(int* num, int cnt, int* check, int x, int y
 // crush time 시작하는 함수
 void GameLayer::StartCrushTime()
 {
+    sound->playBackgroundSound(true);
+    
     isCrushing = true;
     iNumOfCrush = 0;
 
@@ -1023,6 +1054,11 @@ void GameLayer::EndCrushTime()
     isCrushing = false;
     removeChild(crushTimeBackground, true);
     
+    // 한붓그리기 도중에 crush time이 끝나면, 연결선에 걸쳐진 diamond들은 connected 상태로 유지한다.
+    replaceToBlockedDia.clear();
+    failedCrushedDiaPiece.clear();
+    failedCrushedDiaPiece = diaPiece;
+
     // 다시 item diamond를 제외하고, CONNECTED/BLOCKED로 바꾼다.
     for (int x = 1 ; x < COLUMN_COUNT ; x++)
     {
@@ -1033,20 +1069,38 @@ void GameLayer::EndCrushTime()
             {
                 m_pBoardSP[x][y]->RemoveChildren();
                 
-                int value = rand()%100;
-                int type = (value < 33) ? BLOCKED : CONNECTED;
+                int type = (rand()%100 < 60) ? BLOCKED : CONNECTED;
                 m_pBoardSP[x][y]->SetType(type);
                 m_pBoardSP[x][y]->SetTypeSP(-1);
+                // 현재 한붓그리기가 진행중이었다면, 연결선에 걸친 diamond는 그림만 그대로 유지한다.
+                for (int i = 0 ; i < failedCrushedDiaPiece.size() ; i++)
+                {
+                    if (failedCrushedDiaPiece[i].x == x && failedCrushedDiaPiece[i].y == y)
+                    {
+                        // blocked되어야 할 diamond는 따로 저장해 두었다가, 나중에 bomb하고 처리한다.
+                        if (type == BLOCKED)
+                        {
+                            replaceToBlockedDia.push_back(ccp(x, y));
+                        }
+                        m_pBoardSP[x][y]->SetType(CONNECTED); // 잠시 connected인 척한다.
+                        break;
+                    }
+                }
+                
                 m_pBoardSP[x][y]->CreateSpriteDia(this,
                                                   m_pBoard[x-1][y]->GetType(),
                                                   m_pBoard[x][y]->GetType(),
                                                   m_pBoard[x-1][y-1]->GetType(),
                                                   m_pBoard[x][y-1]->GetType(),
-                                                  -1); // 폭탄 type으로 변경.
+                                                  -1); // 일반 diamond로 변경.
                 m_pBoardSP[x][y]->SetPositions(x, y);
                 m_pBoardSP[x][y]->AddChildren(this, zGameObjectSP);
             }
         }
     }
+    
+    failedCrushedDiaPiece.clear();
+    
+    sound->playBackgroundSound(false);
 }
 

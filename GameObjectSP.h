@@ -35,7 +35,7 @@ public:
     
     void SetPositions(int x, int y);
     void AddChildren(GameLayer* gameLayer, int zOrder);
-    void RemoveChildren();
+    void RemoveChildren(bool isItemRemoved = true);
     
 private:
     int m_type; // 0 : blocked, 1 : connected , 2 : special
