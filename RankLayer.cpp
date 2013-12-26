@@ -59,24 +59,24 @@ bool RankLayer::init()
         pRankBoxList[i]->setPosition(ccp(325, (MAX_ITEMS-i)*HEIGHT));
 		scrollContainer->addChild(pRankBoxList[i]);
 
-		char labelMsg[30];
+		char labelMsgRank[30], labelMsgName[30], labelMsgScore[30];
 
-		sprintf(labelMsg, "   %2d", i+1);
-        CCLabelTTF* labelRank = CCLabelTTF::create(labelMsg, "Arial", 42);
+		sprintf(labelMsgRank, "   %2d", i+1);
+        CCLabelTTF* labelRank = CCLabelTTF::create(labelMsgRank, "Arial", 42);
 		labelRank->setColor(ccc3(0, 0, 0));
 		labelRank->setAnchorPoint(ccp(0, 0.5));
 		labelRank->setPosition(ccp(5, pRankBoxList[i]->getContentSize().height/2-10));
 		pRankBoxList[i]->addChild(labelRank);
 
-		sprintf(labelMsg, "%s", vScoreList[i].name);
-        CCLabelTTF* labelName = CCLabelTTF::create(labelMsg, "Arial", 42);
+		sprintf(labelMsgName, "%s", vScoreList[i].name);
+        CCLabelTTF* labelName = CCLabelTTF::create(labelMsgName, "Arial", 42);
 		labelName->setColor(ccc3(0, 0, 0));
 		labelName->setAnchorPoint(ccp(0, 0.5));
 		labelName->setPosition(ccp(pRankBoxList[i]->getContentSize().width/2-200, pRankBoxList[i]->getContentSize().height/2-10));
 		pRankBoxList[i]->addChild(labelName);
 
-		sprintf(labelMsg, "%d", vScoreList[i].score);
-        CCLabelTTF* labelScore = CCLabelTTF::create(labelMsg, "Arial", 40);
+		sprintf(labelMsgScore, "%d", vScoreList[i].score);
+        CCLabelTTF* labelScore = CCLabelTTF::create(labelMsgScore, "Arial", 42);
 		labelScore->setColor(ccc3(200, 0, 0));
 		labelScore->setAnchorPoint(ccp(1, 0.5));
 		labelScore->setPosition(ccp(pRankBoxList[i]->getContentSize().width-75, pRankBoxList[i]->getContentSize().height/2-10));
