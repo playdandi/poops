@@ -28,6 +28,12 @@ USING_NS_CC;
 
 using namespace cocos2d;
 
+struct friendScore
+{
+	char* name;
+	int score;
+};
+
 extern int iCash;
 extern int iGold;
 extern int iRemainingHeartTime;
@@ -40,6 +46,7 @@ extern int iMaxScore;
 extern std::string sUsername;
 extern std::vector<int> vEnabledMaterial;
 extern std::vector<int> vStoredMaterial;
+extern std::vector<struct friendScore> vScoreList;
 
 class Common
 {
@@ -50,7 +57,12 @@ public:
 
 	static int ComputeBoardX(float x);
 	static int ComputeBoardY(float y);
+
     static bool XmlParseMoneyRaisePuzzle(char* data, int size, bool hasMoney);
+
+	static bool XmlParsePuzzleStart(std::vector<char>* buffer);
+	static bool XmlParseRanking(std::vector<char>* buffer);
+
     static bool XmlParsePuzzleEnd(char* data, int size);
 };
 

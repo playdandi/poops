@@ -16,6 +16,7 @@ int iMaxScore;
 std::string sUsername;
 std::vector<int> vEnabledMaterial;
 std::vector<int> vStoredMaterial;
+std::vector<struct friendScore> vScoreList;
 
 
 
@@ -95,6 +96,90 @@ bool Common::XmlParsePuzzleEnd(char* data, int size)
     return false;
 }
 
+bool Common::XmlParsePuzzleStart(std::vector<char>* buffer)
+{
+	const char *data;
+	std::string str(buffer->begin(), buffer->end());
+	data = str.c_str();
+	int size = strlen(data);	
+
+	 // xml parsing
+    xml_document xmlDoc;
+    xml_parse_result result = xmlDoc.load_buffer(data, size);
+    
+    if (!result)
+    {
+        CCLog("error description: %s", result.description());
+        CCLog("error offset: %d", result.offset);
+        return false;
+    }
+    
+    // get several data
+    xml_node nodeResult = xmlDoc.child("response");
+    int code = nodeResult.child("code").text().as_int();
+    //CCLog("code = %d", code);
+    
+    if (code == 0)
+    {
+        // http 통신 성공 - data를 모두 받는다.
+        iAge = nodeResult.child("raise").attribute("age").as_int();
+        iType = nodeResult.child("raise").attribute("type").as_int();
+        iWeight = nodeResult.child("raise").attribute("weight").as_int();
+        iMaxScore = nodeResult.child("puzzle").attribute("max-score").as_int();
+        iRemainingHeartNum = nodeResult.child("puzzle").attribute("heart-num").as_int();
+        iRemainingHeartTime = nodeResult.child("puzzle").attribute("heart-remain-time").as_int();
+        
+        return true;
+    }
+    else if (code == 3)
+    {
+        // no heart msg
+        return false;
+    }
+    
+    return false;
+}
+
+bool Common::XmlParseRanking(std::vector<char>* buffer)
+{
+	const char *data;
+	std::string str(buffer->begin(), buffer->end());
+	data = str.c_str();
+	int size = strlen(data);	
+
+	 // xml parsing
+    xml_document xmlDoc;
+    xml_parse_result result = xmlDoc.load_buffer(data, size);
+    
+    if (!result)
+    {
+        CCLog("error description: %s", result.description());
+        CCLog("error offset: %d", result.offset);
+        return false;
+    }
+    
+    // get several data
+    xml_node nodeResult = xmlDoc.child("response");
+    int code = nodeResult.child("code").text().as_int();
+    
+    if (code == 0)
+    {
+		xml_node nodeRank = nodeResult.child("rank");
+		vScoreList.clear();
+		xml_node_iterator it;
+		for(it = nodeRank.children().begin() ; it != nodeRank.children().end() ; ++it)
+		{
+			struct friendScore fs;
+			fs.name = (char*)it->attribute("name").as_string();
+			fs.score = it->attribute("score").as_int();
+			vScoreList.push_back(fs);
+		}
+        return true;
+    }
+
+    return false;
+}
+
 bool Common::XmlParseMoneyRaisePuzzle(char* data, int size, bool hasMoney)
 {
     // xml parsing
@@ -123,7 +208,7 @@ bool Common::XmlParseMoneyRaisePuzzle(char* data, int size, bool hasMoney)
         }
         iAge = nodeResult.child("raise").attribute("age").as_int();
         iType = nodeResult.child("raise").attribute("type").as_int();
-        iWeight = nodeResult.child("raise").attribute("weight").as_float();
+        iWeight = nodeResult.child("raise").attribute("weight").as_int();
         iMaxScore = nodeResult.child("puzzle").attribute("max-score").as_int();
         iRemainingHeartNum = nodeResult.child("puzzle").attribute("heart-num").as_int();
         iRemainingHeartTime = nodeResult.child("puzzle").attribute("heart-remain-time").as_int();

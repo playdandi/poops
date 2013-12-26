@@ -269,6 +269,7 @@ void RaisingLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
             // post request
             CCHttpRequest* req = new CCHttpRequest();
             req->setUrl("http://14.63.225.203/poops/game/puzzle_start.php");
+			req->setTag("puzzle");
             req->setRequestType(CCHttpRequest::kHttpPost);
             req->setResponseCallback(this, callfuncND_selector(RaisingLayer::onHttpRequestCompleted));
             //req->setResponseCallback(this, httpresponse_selector(RaisingLayer::onHttpRequestCompleted));
@@ -280,6 +281,22 @@ void RaisingLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
             req->release();
         }
     }
+	else if (pMenuRanking->boundingBox().containsPoint(point))
+	{
+		// post request
+		CCHttpRequest* req = new CCHttpRequest();
+		req->setUrl("http://14.63.225.203/poops/game/ranking.php");
+		req->setTag("ranking");
+		req->setRequestType(CCHttpRequest::kHttpPost);
+		req->setResponseCallback(this, callfuncND_selector(RaisingLayer::onHttpRequestCompleted));
+		//req->setResponseCallback(this, httpresponse_selector(RaisingLayer::onHttpRequestCompleted));
+		// write data
+		char postData[25];
+		sprintf(postData, "user_name=%s", sUsername.c_str());
+		req->setRequestData(postData, strlen(postData));
+		CCHttpClient::getInstance()->send(req);
+		req->release();
+	}
     else if (pObjectInfoSprite->boundingBox().containsPoint(point))
     {
         // show & hide object information.
@@ -317,39 +334,42 @@ void RaisingLayer::onHttpRequestCompleted(CCNode *sender, void *data)
     CCHttpResponse* res = (CCHttpResponse*) data;
     
     if (!res)
+	{
         return;
-    
-    int statusCode = res->getResponseCode();
+	}
+
+	const char* tag = res->getHttpRequest()->getTag();
+	int statusCode = res->getResponseCode();
     char statusString[64] = {};
-    sprintf(statusString, "Http Status Code: %d, tag = %s", statusCode, res->getHttpRequest()->getTag());
-    CCLog("response code : %d", statusCode);
+    sprintf(statusString, "Http Status Code: %d, tag = %s", statusCode, tag);
+    CCLog("%s", statusString);
+
+	if (!res->isSucceed())
+	{
+		CCLog("res failed. error buffer: %s", res->getErrorBuffer());
+		return;
+	}
+
+	if (strcmp(tag, "puzzle") == 0)
+	{
+		// xml
+		if (Common::XmlParsePuzzleStart(res->getResponseData()))
+		{
+			CCScene* pRankScene = RankLayer::scene();
+			CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(1.0f, pRankScene));
+		}
+	}
+	else if (strcmp(tag, "ranking") == 0)
+	{
+		// xml
+		if (Common::XmlParseRanking(res->getResponseData()))
+		{
+			CCScene* pPuzzleScene = GameLayer::scene();
+			CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(1.0f, pPuzzleScene));
+		}
+	}
     
-    if (!res->isSucceed())
-    {
-        CCLog("res failed. error buffer: %s", res->getErrorBuffer());
-        return;
-    }
     
-    // dump data
-    std::vector<char> *buffer = res->getResponseData();
-    char dumpData[BUFFER_SIZE];
-    for (unsigned int i = 0 ; i < buffer->size() ; i++)
-    {
-        dumpData[i] = (*buffer)[i];
-    }
-    dumpData[buffer->size()] = NULL;
-    //CCLog("%s", dumpData);
-    //CCLog("=============================");
-    
-    
-    // xml
-    if (Common::XmlParseMoneyRaisePuzzle(dumpData, buffer->size(), false))
-    {
-        CCScene* pPuzzleScene = GameLayer::scene();
-        //	CCDirector::sharedDirector()->setDepthTest(true);
-        //CCDirector::sharedDirector()->replaceScene(CCTransitionMoveInR::create(0.5f, pPuzzleScene));
-        CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(1.0f, pPuzzleScene));
-    }
 }
 
 
