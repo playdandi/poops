@@ -45,6 +45,8 @@ public:
     void StartCrushTime();
     void EndCrushTime();
     
+    void CreateDiaItem(bool isValuable);
+    
     CCTexture2D* GetPuzzlePiece();
     CCTexture2D* GetPuzzleDia();
     CCTexture2D* GetPuzzleSP(int type_sp);
@@ -120,6 +122,8 @@ private:
     bool isOctaItemGiven;
     bool isDiaExItemGiven;
     bool isDiaItemGiven;
+    
+    //std::vector<int> diaTypeCnt;
 };
 
 #endif

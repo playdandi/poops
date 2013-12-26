@@ -156,6 +156,10 @@ void GameLayer::keyBackClicked()
 
 void GameLayer::StartGame()
 {
+    //diaTypeCnt.push_back(0);
+    //diaTypeCnt.push_back(0);
+    //diaTypeCnt.push_back(0);
+    
 	srand(time(NULL));
 
 	memset(m_pBoard, NULL, sizeof(m_pBoard));
@@ -211,6 +215,8 @@ void GameLayer::StartGame()
 			pGameObjectSP->SetTargetBoardY(y);
             pGameObjectSP->SetPositions(x, y);
 			pGameObjectSP->AddChildren(this, zGameObjectSP);
+            
+            //diaTypeCnt[m_pBoardSP[x][y]->GetType()]++;
         }
     }
     
@@ -708,6 +714,16 @@ void GameLayer::BombObject()
         iAcquiredWeight += rand()%9+1;
     }
     
+    // item 생성에 대한 부분
+    if (isDiaItemGiven)
+    {
+        CreateDiaItem(false);
+    }
+    if (isDiaExItemGiven)
+    {
+        //CreateDiaItem(true);
+    }
+    
     // score update
     UpdateScore();
     
@@ -787,6 +803,49 @@ void GameLayer:: ApplyItem(int diaX, int diaY)
         temp.clear();
     }
 }
+
+void GameLayer::CreateDiaItem(bool isValuable)
+{
+    // dia type별 개수 파악
+    int diaTypeCnt[TYPE_DIA_COUNT+1] = {0,};
+    for (int x = 1 ; x < COLUMN_COUNT ; x++)
+    {
+        for (int y = 1 ; y < ROW_COUNT ; y++)
+        {
+            diaTypeCnt[m_pBoardSP[x][y]->GetType()]++;
+        }
+    }
+    
+    // 아이템 생성할 위치 결정하고 만든다.
+    while(1)
+    {
+        int x = rand()%(COLUMN_COUNT-1)+1;
+        int y = rand()%(ROW_COUNT-1)+1;
+
+        if ((m_pBoardSP[x][y]->GetType() == CONNECTED && diaTypeCnt[CONNECTED] > 0) ||
+            (m_pBoardSP[x][y]->GetType() == BLOCKED))
+        {
+            CCLog("%d , %d", x, y);
+            // CONNECTED 다이아가 존재한다면 그곳에 아이템을 만들고, 아니라면 BLOCKED 부분에 만든다.
+            m_pBoardSP[x][y]->RemoveChildren();
+
+            int type_sp = rand()%TYPE_DIA_COUNT + 1;
+            m_pBoardSP[x][y]->SetType(SPECIAL);
+            m_pBoardSP[x][y]->SetTypeSP(type_sp);
+            
+            m_pBoardSP[x][y]->CreateSpriteDia(this, -1, -2, -3, -4, type_sp);
+            m_pBoardSP[x][y]->SetPositions(x, y);
+            m_pBoardSP[x][y]->AddChildrenWithAction(this, zGameObjectSP);
+            
+            sound->playItemSound();
+            
+            break;
+        }
+    }
+    
+    
+}
+
 
 void GameLayer::BombCallback()
 {

@@ -166,6 +166,16 @@ void GameObjectSP::AddChildren(GameLayer* gameLayer, int zOrder)
     }
 }
 
+void GameObjectSP::AddChildrenWithAction(GameLayer* gameLayer, int zOrder)
+{
+    gameLayer->addChild(m_special, zOrder);
+    
+    m_special->setScale(0);
+    CCActionInterval* scale = CCScaleTo::create(1.5f, 1.0);
+    CCActionInterval* action = CCEaseElasticOut::create((CCActionInterval*)scale, 0.4f);
+    m_special->runAction(action);
+}
+
 void GameObjectSP::RemoveChildren(bool isItemRemoved)
 {    
     if (m_type != BLOCKED)

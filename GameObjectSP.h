@@ -35,6 +35,7 @@ public:
     
     void SetPositions(int x, int y);
     void AddChildren(GameLayer* gameLayer, int zOrder);
+    void AddChildrenWithAction(GameLayer* gameLayer, int zOrder);
     void RemoveChildren(bool isItemRemoved = true);
     
 private:
