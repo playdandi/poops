@@ -22,6 +22,9 @@ bool GameLayer::init()
     // enabling keypad
     this->setKeypadEnabled(true);
     
+    // ready timer가 0이 되면 true로 바꾼다.
+    this->setTouchEnabled(false);
+    
     // sound
     sound = new Sound();
     sound->PreLoadSound();
@@ -83,8 +86,6 @@ bool GameLayer::init()
     puzzleTime->setPosition(ccp(m_winSize.width-OBJECT_WIDTH, OBJECT_HEIGHT+20));
     puzzleTime->setColor(ccc3(0, 0, 0));
     addChild(puzzleTime, 2);
-    
-   	setTouchEnabled(false);
     
     readyTime = CCLabelTTF::create("3", "Arial", 60);
     readyTime->setPosition(ccp(m_winSize.width/2, m_winSize.height+100));
@@ -251,6 +252,7 @@ void GameLayer::ReadyTimer(float f)
         readyTime->runAction(action);
 
        	this->setTouchEnabled(true);
+        CCDirector::sharedDirector()->getTouchDispatcher()->addStandardDelegate(this, 0);
 
         this->unschedule(schedule_selector(GameLayer::ReadyTimer));
         this->schedule(schedule_selector(GameLayer::PuzzleTimer), 0.1f);
