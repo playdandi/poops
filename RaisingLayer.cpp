@@ -354,7 +354,7 @@ void RaisingLayer::onHttpRequestCompleted(CCNode *sender, void *data)
 	if (strcmp(tag, "ranking") == 0)
 	{
 		// xml
-		if (Common::XmlParsePuzzleStart(res->getResponseData()))
+		if (Common::XmlParseRanking(res->getResponseData()))
 		{
 			CCScene* pRankScene = RankLayer::scene();
 			CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(1.0f, pRankScene));
@@ -363,7 +363,7 @@ void RaisingLayer::onHttpRequestCompleted(CCNode *sender, void *data)
 	else if (strcmp(tag, "puzzle") == 0)
 	{
 		// xml
-		if (Common::XmlParseRanking(res->getResponseData()))
+		if (Common::XmlParsePuzzleStart(res->getResponseData()))
 		{
 			CCScene* pPuzzleScene = GameLayer::scene();
 			CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(1.0f, pPuzzleScene));

@@ -16,6 +16,8 @@ public:
     static cocos2d::CCScene*scene();
     CREATE_FUNC(RankLayer);
     
+	void menuItemCallback(CCObject* sender);
+
     void ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent);
     void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);
     
