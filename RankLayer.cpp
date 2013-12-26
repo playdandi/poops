@@ -19,64 +19,58 @@ bool RankLayer::init()
     }
     
     winSize = CCDirector::sharedDirector()->getWinSize();
-    
+
+	pResRankBox = CCTextureCache::sharedTextureCache()->addImage("images/score_label.png");
+
+	pResThema = CCTextureCache::sharedTextureCache()->addImage("images/rank_layout.png");
+	pObjectThemaSprite = new CCSprite();
+	pObjectThemaSprite->initWithTexture(pResThema, CCRectMake(0, 0, 705, 874));
+	pObjectThemaSprite->setPosition(ccp(winSize.width/2, winSize.height/2+50));
+	this->addChild(pObjectThemaSprite);
+
+	CCLayer* scrollContainer = CCLayer::create();
+
     setTouchEnabled(true);
     
-    /////////////////
-
-	/////////////////////////////
-	// 3. add your codes below...
-	CCSize winSize = CCDirector::sharedDirector()->getWinSize();
-
-	CCMenu* menu = CCMenu::create();
-
-	const int MAX_ITEMS = 20;
+	const int MAX_ITEMS = vScoreList.size();
 	const int BASE_TAG = 100;
-	const int HEIGHT = 40;
+	const int HEIGHT = 100;
+
+	pRankBoxList.clear();
 
 	char menuName[50];
 	int i;
+
+	
+	// Setup scroll container
+	
+	
 	for (i = 0 ; i < vScoreList.size() ; i++)
 	{
-		snprintf(menuName, sizeof(menuName), "%s - %d", vScoreList[i].name, vScoreList[i].score);
-		CCNode* menuLabel = CCLabelTTF::create(menuName, "Arial", 24);
-		CCSize menuSize = menuLabel->getContentSize();
-
-		CCMenuItem* menuItem = CCMenuItemLabel::create(menuLabel, this, menu_selector(RankLayer::menuItemCallback));
-		menuItem->setTag(BASE_TAG+i);
-		menuItem->setPosition(ccp(0, (MAX_ITEMS-i)*HEIGHT - winSize.height/2));
-
-		menu->addChild(menuItem);
+		pRankBoxList.push_back(new CCSprite());
+		pRankBoxList[i]->initWithTexture(pResRankBox, CCRectMake(0, 0, 650, 100));
+		pRankBoxList[i]->setPosition(ccp(winSize.width/2, (vScoreList.size()-i)*HEIGHT));
+		scrollContainer->addChild(pRankBoxList[i]);
 	}
 
 	CCRect rect(0, -HEIGHT, 100, MAX_ITEMS * HEIGHT);
-
-
-	// Setup scroll container
-	CCLayer* scrollContainer = CCLayer::create();
-	scrollContainer->addChild(menu);
-
 	CCSize contentSize(rect.size.width-rect.origin.x, rect.size.height-rect.origin.y);
 	scrollContainer->setContentSize(contentSize);
 
 
 	// Setup scroll view
-	extension::CCScrollView* scrollView = extension::CCScrollView::create(winSize, scrollContainer);
+	extension::CCScrollView* scrollView = extension::CCScrollView::create(ccp(705, 874), scrollContainer);
 	scrollView->setDirection(extension::kCCScrollViewDirectionVertical);
+	scrollView->setAnchorPoint(ccp(0.5, 0.5));
+	scrollView->setPosition(ccp(winSize.width/2, winSize.height/2+50));
 
 	// Scroll to bottom
 	scrollView->setContentOffset( CCPointZero, true );
 
 	this->addChild(scrollView);
-
+	
 
 	return true;
-}
-
-void RankLayer::menuItemCallback(CCObject* sender)
-{
-	CCMenuItem* menuItem = (CCMenuItem*) sender;
-	CCLog("menu %d", menuItem->getTag());
 }
 
 void RankLayer::keyBackClicked()

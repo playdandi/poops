@@ -15,8 +15,6 @@ public:
     
     static cocos2d::CCScene*scene();
     CREATE_FUNC(RankLayer);
-    
-	void menuItemCallback(CCObject* sender);
 
     void ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent);
     void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);
@@ -27,8 +25,17 @@ public:
 
 	void keyBackClicked();
 
+protected:
+	CCTexture2D* pResRankBox;
+	std::vector<CCSprite*> pRankBoxList;
+
+	CCTexture2D* pResThema;
+	CCSprite* pObjectThemaSprite;
+
 private:
 	CCSize winSize;
+
+
 };
 
 #endif /* defined(__poops8__GameEndLayer__) */
