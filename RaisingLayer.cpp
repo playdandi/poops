@@ -1,5 +1,6 @@
 #include "RaisingLayer.h"
 #include "GameLayer.h"
+#include "RankLayer.h"
 #include <sstream>
 
 CCScene* RaisingLayer::scene()
@@ -350,7 +351,7 @@ void RaisingLayer::onHttpRequestCompleted(CCNode *sender, void *data)
 		return;
 	}
 
-	if (strcmp(tag, "puzzle") == 0)
+	if (strcmp(tag, "ranking") == 0)
 	{
 		// xml
 		if (Common::XmlParsePuzzleStart(res->getResponseData()))
@@ -359,7 +360,7 @@ void RaisingLayer::onHttpRequestCompleted(CCNode *sender, void *data)
 			CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(1.0f, pRankScene));
 		}
 	}
-	else if (strcmp(tag, "ranking") == 0)
+	else if (strcmp(tag, "puzzle") == 0)
 	{
 		// xml
 		if (Common::XmlParseRanking(res->getResponseData()))
