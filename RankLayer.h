@@ -21,11 +21,6 @@ public:
     void scrollViewDidZoom(CCScrollView* view);
 
     void ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent);
-    void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);
-    
-    void onHttpRequestCompleted(CCNode *sender, void *data);
-        
-    void doClose(CCObject* pSender);
 
 	void keyBackClicked();
 
@@ -35,6 +30,9 @@ protected:
 
 	CCTexture2D* pResThema;
 	CCSprite* pObjectThemaSprite;
+
+	CCTexture2D* pResReturnButton;
+	CCSprite* pObjectReturnButtonSprite;
 
 private:
 	CCSize winSize;

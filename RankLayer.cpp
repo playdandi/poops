@@ -1,5 +1,6 @@
 #include "RankLayer.h"
 #include "cocos-ext.h"
+#include "RaisingLayer.h"
 
 using namespace cocos2d;
 using namespace cocos2d::extension;
@@ -28,8 +29,14 @@ bool RankLayer::init()
 	pResThema = CCTextureCache::sharedTextureCache()->addImage("images/rank_layout.png");
 	pObjectThemaSprite = new CCSprite();
 	pObjectThemaSprite->initWithTexture(pResThema, CCRectMake(0, 0, 705, 874));
-	pObjectThemaSprite->setPosition(ccp(winSize.width/2, winSize.height/2));
+	pObjectThemaSprite->setPosition(ccp(winSize.width/2, winSize.height/2+50));
 	this->addChild(pObjectThemaSprite);
+
+	pResReturnButton = CCTextureCache::sharedTextureCache()->addImage("images/return.png");
+	pObjectReturnButtonSprite = new CCSprite();
+	pObjectReturnButtonSprite->initWithTexture(pResReturnButton, CCRectMake(0, 0, 300, 100));
+	pObjectReturnButtonSprite->setPosition(ccp(winSize.width/2, 70));
+	this->addChild(pObjectReturnButtonSprite);
 
     setTouchEnabled(true);
     
@@ -39,36 +46,56 @@ bool RankLayer::init()
 
 	pRankBoxList.clear();
 
-	char menuName[50];
 	int i;
     
-	CCLayer* scrollContainer = CCLayer::create();
-    
-    scrollContainer->setPosition(ccp(winSize.width/2, winSize.height/2));
+	CCLayer* scrollContainer = CCLayer::create();    
+    scrollContainer->setPosition(ccp(winSize.width/2, winSize.height/2+25));
 	
-    int ssize = 15;
-    for (i = 0 ; i < ssize ; i++)
+	for (i = 0 ; i < MAX_ITEMS ; i++)
     {
-        pRankBoxList.push_back(new CCSprite());
-        pRankBoxList[i]->initWithTexture(pResRankBox, CCRectMake(0, 0, 650, 100));
+		pRankBoxList.push_back(new CCSprite());
+		pRankBoxList[i]->initWithTexture(pResRankBox, CCRectMake(0, 0, 650, 100));
 		pRankBoxList[i]->setAnchorPoint(ccp(0.5, 1));
-        pRankBoxList[i]->setPosition(ccp(325, (ssize-i)*HEIGHT));
-        scrollContainer->addChild(pRankBoxList[i]);
+        pRankBoxList[i]->setPosition(ccp(325, (MAX_ITEMS-i)*HEIGHT));
+		scrollContainer->addChild(pRankBoxList[i]);
+
+		char labelMsg[30];
+
+		sprintf(labelMsg, "   %2d", i+1);
+        CCLabelTTF* labelRank = CCLabelTTF::create(labelMsg, "Arial", 42);
+		labelRank->setColor(ccc3(0, 0, 0));
+		labelRank->setAnchorPoint(ccp(0, 0.5));
+		labelRank->setPosition(ccp(5, pRankBoxList[i]->getContentSize().height/2-10));
+		pRankBoxList[i]->addChild(labelRank);
+
+		sprintf(labelMsg, "%s", vScoreList[i].name);
+        CCLabelTTF* labelName = CCLabelTTF::create(labelMsg, "Arial", 42);
+		labelName->setColor(ccc3(0, 0, 0));
+		labelName->setAnchorPoint(ccp(0, 0.5));
+		labelName->setPosition(ccp(pRankBoxList[i]->getContentSize().width/2-200, pRankBoxList[i]->getContentSize().height/2-10));
+		pRankBoxList[i]->addChild(labelName);
+
+		sprintf(labelMsg, "%d", vScoreList[i].score);
+        CCLabelTTF* labelScore = CCLabelTTF::create(labelMsg, "Arial", 40);
+		labelScore->setColor(ccc3(200, 0, 0));
+		labelScore->setAnchorPoint(ccp(1, 0.5));
+		labelScore->setPosition(ccp(pRankBoxList[i]->getContentSize().width-75, pRankBoxList[i]->getContentSize().height/2-10));
+		pRankBoxList[i]->addChild(labelScore);
     }
 
-	scrollContainer->setContentSize(CCSizeMake(705, ssize*100));
+	scrollContainer->setContentSize(CCSizeMake(705, MAX_ITEMS*100));
     
     CCScrollView* scrollView = CCScrollView::create();
     scrollView->retain();
     scrollView->setDirection(kCCScrollViewDirectionVertical);
-    scrollView->setViewSize(CCSizeMake(650, 874));
+    scrollView->setViewSize(CCSizeMake(650, 850));
     scrollView->setContentSize(scrollContainer->getContentSize());
     scrollView->setAnchorPoint(ccp(0, 0));
-    scrollView->setPosition(ccp((winSize.width/2)-325, (1024-874)/2));
+    scrollView->setPosition(ccp((winSize.width/2)-325, (1024-874)/2+12+50));
     scrollView->setContainer(scrollContainer);
     scrollView->setDelegate(this);
 
-    scrollView->setContentOffset(ccp(0, 874-(ssize*100)), false);
+    scrollView->setContentOffset(ccp(0, 850-(MAX_ITEMS*100)), false);
     addChild(scrollView);
     
 
@@ -85,90 +112,22 @@ void RankLayer::ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent)
     CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
     CCPoint point = pTouch->getLocation();
     
-   // if (pConfirmBtn->boundingBox().containsPoint(point))
-   // {
-   //     isConfirming = true;
-   // }
-}
+   if (pObjectReturnButtonSprite->boundingBox().containsPoint(point))
+   {
+	   removeAllChildren();
 
-void RankLayer::ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent)
-{
-    CCTouch* pTouch = (CCTouch*)pTouches->anyObject();
-    CCPoint point = pTouch->getLocation();
-    /*
-    if (isConfirming && pConfirmBtn->boundingBox().containsPoint(point))
-    {
-        // post request
-        CCHttpRequest* req = new CCHttpRequest();
-        req->setUrl("http://14.63.225.203/poops/game/puzzle_end.php");
-        req->setRequestType(CCHttpRequest::kHttpPost);
-        req->setResponseCallback(this, callfuncND_selector(GameEndLayer::onHttpRequestCompleted));
-        //req->setResponseCallback(this, httpresponse_selector(GameEndLayer::onHttpRequestCompleted));
-        // write data
-        char postData[1024];
-        sprintf(postData, "user_name=%s&score=%d&weight=%d&material_a=%d&material_b=%d&material_c=%d&material_d=%d&material_e=%d&material_f=%d", sUsername.c_str(), iScore, iAcquiredWeight, vMaterial[0], vMaterial[1], vMaterial[2], vMaterial[3], vMaterial[4], vMaterial[5]);
-        req->setRequestData(postData, strlen(postData));
-        CCHttpClient::getInstance()->send(req);
-        req->release();
+	   CCScene* nextScene = RaisingLayer::scene();
+	   //	CCDirector::sharedDirector()->setDepthTest(true);
+	   CCScene* transition = CCTransitionFade::create(1.0f, nextScene);
+	   CCDirector::sharedDirector()->replaceScene(transition);
     }
-    
-    isConfirming = false;
-	*/
-}
-
-void RankLayer::onHttpRequestCompleted(CCNode *sender, void *data)
-{
-	/*
-    //CCLog("http done");
-    CCHttpResponse* res = (CCHttpResponse*) data;
-    
-    if (!res)
-        return;
-    
-    int statusCode = res->getResponseCode();
-    //char statusString[64] = {};
-    //sprintf(statusString, "Http Status Code: %d, tag = %s", statusCode, res->getHttpRequest()->getTag());
-    CCLog("response code : %d", statusCode);
-    
-    if (!res->isSucceed())
-    {
-        CCLog("res failed. error buffer: %s", res->getErrorBuffer());
-        return;
-    }
-    
-    // dump data
-    std::vector<char> *buffer = res->getResponseData();
-    char dumpData[BUFFER_SIZE];
-    for (unsigned int i = 0 ; i < buffer->size() ; i++)
-    {
-        dumpData[i] = (*buffer)[i];
-    }
-    dumpData[buffer->size()] = NULL;
-    //CCLog("%s", dumpData);
-    //CCLog("==================================");
-    
-    
-    // xml
-    if (Common::XmlParsePuzzleEnd(dumpData, buffer->size()))
-    {
-        // go to RaisingLayer scene
-        CCScene* pNextScene = RaisingLayer::scene();
-        CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(1.0f, pNextScene));
-    }
-	*/
-}
-
-void RankLayer::doClose(CCObject* pSender)
-{
-    CCString* popParam = CCString::create("1");
-    CCNotificationCenter::sharedNotificationCenter()->postNotification("noti", popParam);
-    this->removeFromParentAndCleanup(true);
 }
 
 void RankLayer::scrollViewDidScroll(CCScrollView* view)
 {
 
 }
+
 void RankLayer::scrollViewDidZoom(CCScrollView* view)
 {
     
