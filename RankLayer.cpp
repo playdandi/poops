@@ -28,7 +28,7 @@ bool RankLayer::init()
 	pResThema = CCTextureCache::sharedTextureCache()->addImage("images/rank_layout.png");
 	pObjectThemaSprite = new CCSprite();
 	pObjectThemaSprite->initWithTexture(pResThema, CCRectMake(0, 0, 705, 874));
-	pObjectThemaSprite->setPosition(ccp(winSize.width/2, winSize.height/2+50));
+	pObjectThemaSprite->setPosition(ccp(winSize.width/2, winSize.height/2));
 	this->addChild(pObjectThemaSprite);
 
     setTouchEnabled(true);
@@ -43,64 +43,34 @@ bool RankLayer::init()
 	int i;
     
 	CCLayer* scrollContainer = CCLayer::create();
-    scrollContainer->setContentSize(CCSizeMake(705, 874));
-    scrollContainer->setPosition(ccp(winSize.width/2, winSize.height/2+50));
+    
+    scrollContainer->setPosition(ccp(winSize.width/2, winSize.height/2));
 	
-    //for (i = 0; i < 10 ; i++)
-    //    vScoreList.push_back(0);
     int ssize = 15;
     for (i = 0 ; i < ssize ; i++)
     {
         pRankBoxList.push_back(new CCSprite());
         pRankBoxList[i]->initWithTexture(pResRankBox, CCRectMake(0, 0, 650, 100));
-        pRankBoxList[i]->setPosition(ccp(winSize.width/2, (ssize-i)*HEIGHT));
+		pRankBoxList[i]->setAnchorPoint(ccp(0.5, 1));
+        pRankBoxList[i]->setPosition(ccp(325, (ssize-i)*HEIGHT));
         scrollContainer->addChild(pRankBoxList[i]);
     }
+
+	scrollContainer->setContentSize(CCSizeMake(705, ssize*100));
     
     CCScrollView* scrollView = CCScrollView::create();
     scrollView->retain();
     scrollView->setDirection(kCCScrollViewDirectionVertical);
-    scrollView->setViewSize(CCSizeMake(pObjectThemaSprite->getContentSize().width,
-                                       pObjectThemaSprite->getContentSize().height));
+    scrollView->setViewSize(CCSizeMake(650, 874));
     scrollView->setContentSize(scrollContainer->getContentSize());
     scrollView->setAnchorPoint(ccp(0, 0));
-    scrollView->setPosition(ccp(winSize.width/2-pObjectThemaSprite->getContentSize().width/2,
-                                winSize.height/2-pObjectThemaSprite->getContentSize().height/2));
+    scrollView->setPosition(ccp((winSize.width/2)-325, (1024-874)/2));
     scrollView->setContainer(scrollContainer);
-    ///scrollView->setDelegate(this);
-    scrollView->setContentOffset(CCPointZero, false);
+    scrollView->setDelegate(this);
+
+    scrollView->setContentOffset(ccp(0, 874-(ssize*100)), false);
     addChild(scrollView);
     
-	// Setup scroll container
-	
-	/*
-	for (i = 0 ; i < vScoreList.size() ; i++)
-	{
-		pRankBoxList.push_back(new CCSprite());
-		pRankBoxList[i]->initWithTexture(pResRankBox, CCRectMake(0, 0, 650, 100));
-		pRankBoxList[i]->setPosition(ccp(winSize.width/2, (vScoreList.size()-i)*HEIGHT));
-		scrollContainer->addChild(pRankBoxList[i]);
-	}
-
-	CCRect rect(0, -HEIGHT, 100, MAX_ITEMS * HEIGHT);
-    CCLog("rect size = (%f , %f)", rect.size.width, rect.size.height);
-    CCLog("rect origin = (%f , %f)", rect.origin.x, rect.origin.y);
-	CCSize contentSize(rect.size.width-rect.origin.x, rect.size.height-rect.origin.y);
-	scrollContainer->setContentSize(contentSize);
-
-
-	// Setup scroll view
-    CCScrollView* scrollView = CCScrollView::create(winSize, scrollContainer);
-    //CCScrollView::create(ccp(705, 874), scrollContainer);)
-	scrollView->setDirection(kCCScrollViewDirectionVertical);
-	scrollView->setAnchorPoint(ccp(0.5, 0.5));
-	scrollView->setPosition(ccp(winSize.width/2, winSize.height/2+50));
-
-	// Scroll to bottom
-	scrollView->setContentOffset( CCPointZero, true );
-
-	this->addChild(scrollView);
-	*/
 
 	return true;
 }
