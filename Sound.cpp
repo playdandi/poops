@@ -31,6 +31,7 @@ void Sound::PreLoadSound()
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/combo_quadruple.wav");
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/combo_pentuple.wav");
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/crush3.wav");
+        SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/create_item.mp3");
     }
     else
     {
@@ -42,6 +43,7 @@ void Sound::PreLoadSound()
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/combo_quadruple.ogg");
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/combo_pentuple.ogg");
         SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/crush3.ogg");
+        SimpleAudioEngine::sharedEngine()->preloadEffect("sounds/create_item.mp3");
     }
 
     SimpleAudioEngine::sharedEngine()->setEffectsVolume(0.7);
@@ -119,4 +121,9 @@ void Sound::playComboSound(int combo)
                 SimpleAudioEngine::sharedEngine()->playEffect("sounds/crush3.ogg"); break;
         }
     }
+}
+
+void Sound::playItemSound()
+{
+    SimpleAudioEngine::sharedEngine()->playEffect("sounds/create_item.mp3");
 }

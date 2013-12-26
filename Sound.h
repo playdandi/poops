@@ -13,6 +13,7 @@ public:
     void playBackgroundSound(bool isCrushing);
     void StopBackgroundSound();
     void playComboSound(int combo);
+    void playItemSound();
 
 private:
     std::string ext;
