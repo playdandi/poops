@@ -252,7 +252,7 @@ void GameLayer::ReadyTimer(float f)
         readyTime->runAction(action);
 
        	this->setTouchEnabled(true);
-        CCDirector::sharedDirector()->getTouchDispatcher()->addStandardDelegate(this, 0);
+        //CCDirector::sharedDirector()->getTouchDispatcher()->addStandardDelegate(this, 0);
 
         this->unschedule(schedule_selector(GameLayer::ReadyTimer));
         this->schedule(schedule_selector(GameLayer::PuzzleTimer), 0.1f);
@@ -989,9 +989,17 @@ void GameLayer::FallingFinished(int x1, int y1, int x2, int y2)
         // 가장 큰 덩어리를 구성하는 piece 개수 구한다.
         FindLargestMass();
         
-        m_bTouchStarted = false;
-        m_bIsBombing = false;
-        m_bIsCycle = false;
+        // 터뜨릴 수 있는 게 없다면, 어떤 하나를 바꿔서 가능하도록 만들어준다.
+        if (iNumOfPieceOfLargestMass < 3)
+        {
+            ReplaceOneOctaPiece();
+        }
+        else
+        {
+            m_bTouchStarted = false;
+            m_bIsBombing = false;
+            m_bIsCycle = false;
+        }
 	}
 }
 
@@ -1076,6 +1084,95 @@ void GameLayer::FindLargestMassRecur(int* num, int cnt, int* check, int x, int y
         FindLargestMassRecur(num, cnt+1, check, x-1, y+1, type);
     if (x < COLUMN_COUNT-1 && y < ROW_COUNT-1 && check[(x+1)*COLUMN_COUNT+y+1] == 0 && m_pBoard[x+1][y+1]->GetType() == type && m_pBoardSP[x+1][y+1]->GetType() != BLOCKED)
         FindLargestMassRecur(num, cnt+1, check, x+1, y+1, type);
+}
+
+void GameLayer::ReplaceOneOctaPiece()
+{
+    std::vector<CCPoint> point;
+    point.clear();
+    int x, y, type;
+    
+    while (1)
+    {
+        x = rand()%COLUMN_COUNT;
+        y = rand()%ROW_COUNT;
+        
+        if ((y-2 >= 0 && m_pBoard[x][y-1]->GetType() == m_pBoard[x][y-2]->GetType()))
+            type = m_pBoard[x][y-1]->GetType();
+        else if (y+2 < ROW_COUNT && m_pBoard[x][y+1]->GetType() == m_pBoard[x][y+2]->GetType())
+            type = m_pBoard[x][y+1]->GetType();
+        else if (x-2 >= 0 && m_pBoard[x-1][y]->GetType() == m_pBoard[x-2][y]->GetType())
+            type = m_pBoard[x-1][y]->GetType();
+        else if (x+2 > COLUMN_COUNT && m_pBoard[x+2][y]->GetType() == m_pBoard[x+1][y]->GetType())
+            type = m_pBoard[x+1][y]->GetType();
+        else if (x-1 >= 0 && x+1 < COLUMN_COUNT && m_pBoard[x-1][y]->GetType() == m_pBoard[x+1][y]->GetType())
+            type = m_pBoard[x-1][y]->GetType();
+        else if (y-1 >= 0 && y+1 < ROW_COUNT && m_pBoard[x][y-1]->GetType() == m_pBoard[x][y+1]->GetType())
+            type = m_pBoard[x][y-1]->GetType();
+        else if (x-1 >= 0 && y-1 >= 0 && y+1 < ROW_COUNT && m_pBoard[x-1][y+1]->GetType() == m_pBoard[x][y-1]->GetType() && m_pBoardSP[x][y+1]->GetType() != BLOCKED)
+            type = m_pBoard[x-1][y+1]->GetType();
+        else if (x-1 >= 0 && x+1 < COLUMN_COUNT && y+1 < ROW_COUNT && m_pBoard[x-1][y+1]->GetType() == m_pBoard[x+1][y]->GetType() && m_pBoardSP[x][y+1]->GetType() != BLOCKED)
+            type = m_pBoard[x-1][y+1]->GetType();
+        else if (x+1 < COLUMN_COUNT && y-1 >= 0 && y+1 < ROW_COUNT && m_pBoard[x+1][y+1]->GetType() == m_pBoard[x][y-1]->GetType() && m_pBoardSP[x+1][y+1]->GetType() != BLOCKED)
+            type = m_pBoard[x+1][y+1]->GetType();
+        else if (x-1 >= 0 && x+1 < COLUMN_COUNT && y+1 < ROW_COUNT && m_pBoard[x+1][y+1]->GetType() == m_pBoard[x-1][y]->GetType() && m_pBoardSP[x+1][y+1]->GetType() != BLOCKED)
+            type = m_pBoard[x+1][y+1]->GetType();
+        else if (x-1 >= 0 && y-1 >= 0 && y+1 < ROW_COUNT && m_pBoard[x-1][y-1]->GetType() == m_pBoard[x][y+1]->GetType() && m_pBoardSP[x][y]->GetType() != BLOCKED)
+            type = m_pBoard[x-1][y-1]->GetType();
+        else if (x-1 >= 0 && x+1 < COLUMN_COUNT && y-1 >= 0 && m_pBoard[x-1][y-1]->GetType() == m_pBoard[x+1][y]->GetType() && m_pBoardSP[x][y]->GetType() != BLOCKED)
+            type = m_pBoard[x-1][y-1]->GetType();
+        else if (x-1 >= 0 && x+1 < COLUMN_COUNT && y-1 >= 0 && m_pBoard[x+1][y-1]->GetType() == m_pBoard[x-1][y]->GetType() && m_pBoardSP[x+1][y]->GetType() != BLOCKED)
+            type = m_pBoard[x+1][y-1]->GetType();
+        else if (x+1 < COLUMN_COUNT && y-1 >= 0 && y+1 < ROW_COUNT && m_pBoard[x+1][y-1]->GetType() == m_pBoard[x][y+1]->GetType() && m_pBoardSP[x+1][y]->GetType() != BLOCKED)
+            type = m_pBoard[x+1][y-1]->GetType();
+        else
+            continue;
+        
+        // action start
+        replaceXY = ccp(x, y);
+        replaceType = type;
+        m_pBoard[x][y]->setAnchorPoint(ccp(0.5f, 0.5f));
+        m_pBoard[x][y]->setPosition(
+                        ccp(Common::ComputeX(x)+OBJECT_WIDTH/2, Common::ComputeY(y)+OBJECT_HEIGHT/2));
+        CCActionInterval* action = CCSequence::create(CCScaleTo::create(0.5f, 0),
+                                    CCCallFunc::create(this, callfunc_selector(GameLayer::Replace1)), NULL);
+        m_pBoard[x][y]->runAction(action);
+        
+        break;
+    }
+}
+
+void GameLayer::Replace1()
+{
+    int x = (int)replaceXY.x;
+    int y = (int)replaceXY.y;
+    
+    removeChild(m_pBoard[x][y]);
+    m_pBoard[x][y] = NULL;
+
+    m_pBoard[x][y] = GameObject::Create(replaceType, this);
+    m_pBoard[x][y]->setAnchorPoint(ccp(0.5f, 0.5f));
+    m_pBoard[x][y]->setPosition(
+                    ccp(Common::ComputeX(x)+OBJECT_WIDTH/2, Common::ComputeY(y)+OBJECT_HEIGHT/2));
+    m_pBoard[x][y]->SetTargetBoardX(x);
+    m_pBoard[x][y]->SetTargetBoardY(y);
+    m_pBoard[x][y]->setScale(0);
+    addChild(m_pBoard[x][y], zGameObject);
+
+    CCActionInterval* action = CCSequence::create(CCScaleTo::create(0.5f, 1),
+                                    CCCallFunc::create(this, callfunc_selector(GameLayer::Replace2)), NULL);
+    m_pBoard[x][y]->runAction(action);
+}
+
+void GameLayer::Replace2()
+{
+    m_pBoard[(int)replaceXY.x][(int)replaceXY.y]->setAnchorPoint(ccp(0.0f, 0.0f));
+    m_pBoard[(int)replaceXY.x][(int)replaceXY.y]->setPosition(
+                    ccp(Common::ComputeX((int)replaceXY.x), Common::ComputeY((int)replaceXY.y)));
+    
+    m_bTouchStarted = false;
+    m_bIsBombing = false;
+    m_bIsCycle = false;
 }
 
 

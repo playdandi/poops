@@ -8,13 +8,17 @@
 using namespace cocos2d;
 using namespace cocos2d::extension;
 
-class RankLayer : public cocos2d::CCLayerColor
+class RankLayer : public cocos2d::CCLayerColor,
+                    public CCScrollViewDelegate
 {
 public:
     virtual bool init();
     
     static cocos2d::CCScene*scene();
     CREATE_FUNC(RankLayer);
+    
+    void scrollViewDidScroll(CCScrollView* view);
+    void scrollViewDidZoom(CCScrollView* view);
 
     void ccTouchesBegan(CCSet* pTouches, CCEvent* pEvent);
     void ccTouchesEnded(CCSet* pTouches, CCEvent* pEvent);

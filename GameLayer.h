@@ -57,6 +57,10 @@ public:
     void FindLargestMass();
     void FindLargestMassRecur(int* num, int cnt, int* check, int x, int y, int type);
     
+    void ReplaceOneOctaPiece();
+    void Replace1();
+    void Replace2();
+    
     static CCScene* scene();
 	CREATE_FUNC(GameLayer);
 
@@ -124,6 +128,8 @@ private:
     bool isDiaItemGiven;
     
     //std::vector<int> diaTypeCnt;
+    CCPoint replaceXY;
+    int replaceType;
 };
 
 #endif

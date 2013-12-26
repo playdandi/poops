@@ -1,6 +1,9 @@
 #include "RankLayer.h"
+#include "cocos-ext.h"
 
 using namespace cocos2d;
+using namespace cocos2d::extension;
+
 
 CCScene* RankLayer::scene()
 {    
@@ -28,8 +31,6 @@ bool RankLayer::init()
 	pObjectThemaSprite->setPosition(ccp(winSize.width/2, winSize.height/2+50));
 	this->addChild(pObjectThemaSprite);
 
-	CCLayer* scrollContainer = CCLayer::create();
-
     setTouchEnabled(true);
     
 	const int MAX_ITEMS = vScoreList.size();
@@ -40,11 +41,39 @@ bool RankLayer::init()
 
 	char menuName[50];
 	int i;
-
+    
+	CCLayer* scrollContainer = CCLayer::create();
+    scrollContainer->setContentSize(CCSizeMake(705, 874));
+    scrollContainer->setPosition(ccp(winSize.width/2, winSize.height/2+50));
 	
+    //for (i = 0; i < 10 ; i++)
+    //    vScoreList.push_back(0);
+    int ssize = 15;
+    for (i = 0 ; i < ssize ; i++)
+    {
+        pRankBoxList.push_back(new CCSprite());
+        pRankBoxList[i]->initWithTexture(pResRankBox, CCRectMake(0, 0, 650, 100));
+        pRankBoxList[i]->setPosition(ccp(winSize.width/2, (ssize-i)*HEIGHT));
+        scrollContainer->addChild(pRankBoxList[i]);
+    }
+    
+    CCScrollView* scrollView = CCScrollView::create();
+    scrollView->retain();
+    scrollView->setDirection(kCCScrollViewDirectionVertical);
+    scrollView->setViewSize(CCSizeMake(pObjectThemaSprite->getContentSize().width,
+                                       pObjectThemaSprite->getContentSize().height));
+    scrollView->setContentSize(scrollContainer->getContentSize());
+    scrollView->setAnchorPoint(ccp(0, 0));
+    scrollView->setPosition(ccp(winSize.width/2-pObjectThemaSprite->getContentSize().width/2,
+                                winSize.height/2-pObjectThemaSprite->getContentSize().height/2));
+    scrollView->setContainer(scrollContainer);
+    ///scrollView->setDelegate(this);
+    scrollView->setContentOffset(CCPointZero, false);
+    addChild(scrollView);
+    
 	// Setup scroll container
 	
-	
+	/*
 	for (i = 0 ; i < vScoreList.size() ; i++)
 	{
 		pRankBoxList.push_back(new CCSprite());
@@ -54,13 +83,16 @@ bool RankLayer::init()
 	}
 
 	CCRect rect(0, -HEIGHT, 100, MAX_ITEMS * HEIGHT);
+    CCLog("rect size = (%f , %f)", rect.size.width, rect.size.height);
+    CCLog("rect origin = (%f , %f)", rect.origin.x, rect.origin.y);
 	CCSize contentSize(rect.size.width-rect.origin.x, rect.size.height-rect.origin.y);
 	scrollContainer->setContentSize(contentSize);
 
 
 	// Setup scroll view
-	extension::CCScrollView* scrollView = extension::CCScrollView::create(ccp(705, 874), scrollContainer);
-	scrollView->setDirection(extension::kCCScrollViewDirectionVertical);
+    CCScrollView* scrollView = CCScrollView::create(winSize, scrollContainer);
+    //CCScrollView::create(ccp(705, 874), scrollContainer);)
+	scrollView->setDirection(kCCScrollViewDirectionVertical);
 	scrollView->setAnchorPoint(ccp(0.5, 0.5));
 	scrollView->setPosition(ccp(winSize.width/2, winSize.height/2+50));
 
@@ -68,7 +100,7 @@ bool RankLayer::init()
 	scrollView->setContentOffset( CCPointZero, true );
 
 	this->addChild(scrollView);
-	
+	*/
 
 	return true;
 }
@@ -161,4 +193,13 @@ void RankLayer::doClose(CCObject* pSender)
     CCString* popParam = CCString::create("1");
     CCNotificationCenter::sharedNotificationCenter()->postNotification("noti", popParam);
     this->removeFromParentAndCleanup(true);
+}
+
+void RankLayer::scrollViewDidScroll(CCScrollView* view)
+{
+
+}
+void RankLayer::scrollViewDidZoom(CCScrollView* view)
+{
+    
 }
